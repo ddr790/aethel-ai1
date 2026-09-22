@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050506">
+<title>Aethel — AI Assistant</title>
+<link rel="icon" type="image/png" href="aethel-logo.png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7;--panel:rgba(255,255,255,.66);--panel-strong:rgba(255,255,255,.86);
+  --text:#111114;--muted:#737378;--line:rgba(0,0,0,.09);--accent:#0071e3;
+  --user:#e9e9ed;--shadow:0 24px 80px rgba(0,0,0,.10);--radius:24px;
+}
+html.dark{--bg:#050506;--panel:rgba(27,27,31,.68);--panel-strong:rgba(30,30,34,.9);
+ --text:#f5f5f7;--muted:#a1a1a6;--line:rgba(255,255,255,.1);--user:#202024;
+ --shadow:0 28px 100px rgba(0,0,0,.45)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;overflow-x:hidden;overflow-y:auto}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+ color:var(--text);background:var(--bg);-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit;color:inherit}button{border:0;background:none;cursor:pointer}
+#webgl{position:fixed;inset:0;width:100%;height:100%;z-index:-2}
+.ambient{position:fixed;inset:0;pointer-events:none;z-index:-1;background:
+ radial-gradient(circle at 18% 15%,rgba(100,120,255,.09),transparent 32%),
+ radial-gradient(circle at 82% 72%,rgba(255,80,190,.08),transparent 30%),
+ linear-gradient(180deg,rgba(255,255,255,.08),transparent 55%)}
+.app{height:100%;display:grid;grid-template-columns:290px 1fr;transition:grid-template-columns .5s cubic-bezier(.2,.8,.2,1)}
+.app.collapsed{grid-template-columns:0 1fr}.sidebar{min-width:0;overflow:hidden;border-right:1px solid var(--line);
+ background:var(--panel);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);display:flex;flex-direction:column}
+.side-inner{width:290px;height:100%;display:flex;flex-direction:column;padding:16px}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 8px 18px;font-weight:700;letter-spacing:-.03em}
+.brand-mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;overflow:hidden;background:#000;box-shadow:0 5px 20px #0003;flex:none}
+.brand-mark img{width:100%;height:100%;object-fit:contain;display:block}
+.new-chat{height:46px;border-radius:15px;background:var(--panel-strong);border:1px solid var(--line);display:flex;align-items:center;
+ padding:0 14px;gap:9px;box-shadow:0 8px 25px #0000000a;margin-bottom:15px}
+.section-label{font-size:11px;color:var(--muted);font-weight:600;padding:7px 10px;text-transform:uppercase;letter-spacing:.08em}
+.history{overflow:auto;flex:1}.chat-row{display:flex;align-items:center;gap:8px;border-radius:12px;padding:10px 10px;margin:2px 0;transition:.2s}
+.chat-row:hover{background:#00000008}.dark .chat-row:hover{background:#fff1}.chat-row.active{background:var(--user)}
+.chat-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;font-size:13px}
+.row-actions{display:flex;align-items:center;gap:2px;flex:none}
+.row-menu{opacity:.72;width:30px;height:30px}
+.row-menu:hover,.row-menu:focus-visible{opacity:1;background:var(--panel);color:var(--text)}
+@media (hover:hover) and (pointer:fine){
+  .row-menu{opacity:0}
+  .chat-row:hover .row-menu,.chat-row:focus-within .row-menu{opacity:1}
+}
+.side-bottom{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.side-action{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border-radius:12px;color:var(--muted);text-align:left}
+.side-action:hover{background:#00000008;color:var(--text)}
+.main{min-width:0;min-height:0;height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden}.topbar{height:64px;display:flex;align-items:center;gap:10px;padding:10px 18px;z-index:4}
+.icon-btn{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;border:1px solid transparent}
+.icon-btn:hover{background:var(--panel);border-color:var(--line);backdrop-filter:blur(15px)}
+.model-wrap{position:relative}
+.model-pill{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:13px;background:var(--panel);
+ border:1px solid var(--line);backdrop-filter:blur(20px);font-size:13px;font-weight:600}
+.model-menu{position:absolute;top:calc(100% + 8px);left:0;width:270px;padding:7px;border:1px solid var(--line);
+ background:var(--panel-strong);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);
+ border-radius:17px;box-shadow:var(--shadow);z-index:30;display:none}
+.model-wrap.open .model-menu{display:block;animation:menuIn .18s ease-out}
+@keyframes menuIn{from{opacity:0;transform:translateY(-5px) scale(.98)}to{opacity:1;transform:none}}
+.model-option{width:100%;display:flex;align-items:center;gap:11px;padding:11px;border-radius:12px;text-align:left}
+.model-option:hover{background:var(--user)}
+.model-option.selected{background:var(--user)}
+.model-option .model-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--text);color:var(--bg);font-size:11px;font-weight:800}
+.model-option-text{min-width:0;flex:1}
+.model-option-name{font-size:13px;font-weight:650}
+.model-option-desc{display:block;color:var(--muted);font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.model-check{margin-left:auto;opacity:0}
+.model-option.selected .model-check{opacity:1}
+.top-spacer{flex:1}.status{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+.dot{width:7px;height:7px;border-radius:50%;background:#36d16f;box-shadow:0 0 12px #36d16f}
+.chat{flex:1 1 auto;min-width:0;min-height:0;height:calc(100% - 64px);overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;touch-action:pan-y;scroll-behavior:auto;overscroll-behavior:contain;overflow-anchor:none;scrollbar-gutter:stable}
+.messages{width:min(900px,100%);margin:auto;padding:40px 24px 230px;overflow-anchor:none}
+.empty{text-align:center;padding:12vh 20px}.empty h1{font-size:clamp(32px,5vw,58px);letter-spacing:-.06em;margin:0 0 14px}
+.empty p{color:var(--muted);font-size:16px}.suggestions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+.suggestion{padding:11px 15px;border:1px solid var(--line);background:var(--panel);border-radius:14px;font-size:13px;backdrop-filter:blur(20px)}
+.msg{display:flex;gap:13px;margin:25px 0;animation:rise .45s cubic-bezier(.2,.8,.2,1)}@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.msg.user{justify-content:flex-end}.avatar{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex:none;background:#000;border:1px solid var(--line);overflow:hidden}.avatar img{width:100%;height:100%;object-fit:contain;display:block}
+.bubble{max-width:78%;line-height:1.62;font-size:15px}.user .bubble{background:var(--user);padding:12px 15px;border-radius:20px 20px 6px 20px}
+.ai .bubble{padding:3px 0}.message-tools{display:flex;gap:2px;margin-top:8px;opacity:0;transition:.2s}.msg:hover .message-tools{opacity:1}
+.tool{width:32px;height:30px;border-radius:9px;color:var(--muted)}.tool:hover{background:var(--panel);color:var(--text)}
+.code{position:relative;margin:14px 0;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0b0b0d;color:#e8e8ed}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;color:#aaa;font-size:11px;border-bottom:1px solid #fff1}
+.code pre{margin:0;padding:15px;overflow:auto;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace}
+.composer-wrap{position:fixed;left:290px;right:0;bottom:0;padding:18px 20px 22px;background:linear-gradient(transparent,var(--bg) 28%);z-index:5;pointer-events:none;touch-action:none}
+.composer-wrap .composer{pointer-events:auto}
+.app.collapsed .composer-wrap{left:0}
+.composer{width:min(900px,100%);margin:auto;position:relative;border:1px solid var(--line);background:var(--panel-strong);
+ backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border-radius:25px;box-shadow:var(--shadow);padding:10px}
+.thinking-aura{position:absolute;inset:-2px;border-radius:27px;pointer-events:none;opacity:0;filter:blur(5px);
+ background:conic-gradient(from var(--angle),#6e72ff,#ff4fca,#5de6ff,#6e72ff);animation:spin 3s linear infinite;z-index:-1}
+.thinking .thinking-aura{opacity:.38}@property --angle{syntax:"<angle>";initial-value:0deg;inherits:false}@keyframes spin{to{--angle:360deg}}
+textarea{width:100%;resize:none;border:0;outline:0;background:transparent;min-height:44px;max-height:160px;padding:8px 8px 4px;font-size:15px;line-height:1.5}
+.composer-tools{display:flex;align-items:center;gap:3px}.composer-tools .icon-btn{width:36px;height:36px}.send{margin-left:auto;width:38px;height:38px;border-radius:13px;background:var(--text);color:var(--bg);display:grid;place-items:center}.icon-btn.active{background:var(--user);border-color:var(--line)}#voice.active{animation:pulseVoice 1s ease-in-out infinite}@keyframes pulseVoice{50%{transform:scale(1.08);box-shadow:0 0 0 6px rgba(255,69,58,.12)}}
+.file-input{display:none}.drop{position:absolute;inset:0;border-radius:25px;border:2px dashed #0071e3;background:#0071e312;display:none;place-items:center}
+.composer.drag .drop{display:grid}
+.modal-backdrop{position:fixed;inset:0;background:#0006;backdrop-filter:blur(15px);display:none;place-items:center;z-index:20;padding:20px}
+.modal-backdrop.open{display:grid}.modal{width:min(600px,100%);max-height:85vh;overflow:auto;background:var(--panel-strong);border:1px solid var(--line);border-radius:26px;box-shadow:var(--shadow);padding:22px}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.modal h2{margin:0;letter-spacing:-.04em}
+.setting{padding:16px 0;border-top:1px solid var(--line)}.setting:first-of-type{border-top:0}.setting label{display:block;font-weight:600;margin-bottom:7px}
+.setting small{color:var(--muted)}.setting textarea{background:var(--user);border-radius:13px;padding:12px;min-height:100px}
+.range{width:100%}.toggle{width:48px;height:28px;border-radius:20px;background:#777;position:relative}.toggle.on{background:#34c759}.toggle:after{content:"";width:22px;height:22px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:.2s}.toggle.on:after{left:23px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;gap:20px}
+#preloader{position:fixed;inset:0;background:#050506;color:white;z-index:100;display:grid;place-items:center;transition:opacity .45s,visibility .45s;animation:preloaderFailSafe 1.2s forwards;pointer-events:none} @keyframes preloaderFailSafe{0%,65%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}.loader{display:flex;flex-direction:column;align-items:center;gap:15px}.loader-mark{width:58px;height:58px;border-radius:16px;background:#000;display:grid;place-items:center;overflow:hidden;animation:pulse 1.5s infinite}.loader-mark img{width:100%;height:100%;object-fit:contain;display:block}
+@keyframes pulse{50%{transform:scale(.86);filter:blur(1px)}}.hidden{display:none!important}
+@media(max-width:760px){.app{grid-template-columns:1fr}.sidebar{position:fixed;z-index:10;top:0;bottom:0;width:290px;transform:translateX(-100%);transition:.4s}.app.sidebar-open .sidebar{transform:none}.topbar{padding:8px 12px}.messages{padding-left:16px;padding-right:16px}.bubble{max-width:88%}.status{display:none}.main{height:100%;min-height:0}.chat{height:calc(100% - 64px);min-height:0}.composer-wrap{left:0!important;padding:14px 12px 16px}}
+
+/* V12 tools, thinking and workspaces */
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.workspace-btn{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;padding:10px;display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer}.workspace-btn:hover{background:var(--user)}
+.thinking-box{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px}.thinking-dots{display:flex;gap:4px}.thinking-dots span{width:6px;height:6px;border-radius:50%;background:currentColor;animation:thinkingDot 1.05s infinite ease-in-out}.thinking-dots span:nth-child(2){animation-delay:.14s}.thinking-dots span:nth-child(3){animation-delay:.28s}@keyframes thinkingDot{0%,70%,100%{transform:translateY(0);opacity:.35}35%{transform:translateY(-4px);opacity:1}}
+.artifact-card{border:1px solid var(--line);background:var(--panel);border-radius:16px;overflow:hidden;margin-top:8px}.artifact-card img{display:block;width:100%;max-height:480px;object-fit:contain;background:#050506}.artifact-actions{display:flex;gap:7px;padding:8px}.artifact-actions button{border:1px solid var(--line);background:transparent;color:var(--text);border-radius:9px;padding:7px 10px;font-size:12px}.workspace-modal .modal{max-width:720px}.workspace-list{display:grid;gap:8px;max-height:48vh;overflow:auto}.workspace-item{padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.workspace-item strong{display:block;margin-bottom:4px}.workspace-item small{color:var(--muted)}
+
+/* V14 */
+.aethel-toast{position:fixed;left:50%;bottom:112px;transform:translate(-50%,16px);opacity:0;pointer-events:none;z-index:1000;max-width:min(92vw,520px);padding:11px 15px;border:1px solid var(--line);border-radius:14px;background:var(--panel-strong);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 18px 50px #0003;color:var(--text);font-size:13px;transition:opacity .2s ease,transform .2s ease;text-align:center}
+.aethel-toast.show{opacity:1;transform:translate(-50%,0)}
+.artifact-card img{display:block;width:100%;height:auto;border-radius:18px;border:1px solid var(--line);background:#08090b}
+
+/* AETHEL PRICING — rebuilt from the supplied pricing-module concept */
+.plan-button{margin-top:8px;border:1px solid var(--line);background:linear-gradient(135deg,#111,#25252b);color:#fff;border-radius:13px;padding:11px 12px;width:100%;display:flex;align-items:center;justify-content:space-between;font-weight:700}.plan-button small{font-weight:500;opacity:.7}
+.pricing-modal{width:min(1180px,calc(100vw - 24px));max-height:90vh;overflow:auto;padding:26px;background:linear-gradient(145deg,rgba(17,17,20,.96),rgba(8,8,10,.98));border:1px solid rgba(255,255,255,.1);box-shadow:0 35px 120px rgba(0,0,0,.55)}
+.pricing-hero{text-align:center;padding:8px 10px 24px}.pricing-eyebrow{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid rgba(255,255,255,.1);border-radius:999px;color:#a1a1aa;font-size:11px;text-transform:uppercase;letter-spacing:.12em}.pricing-eyebrow .live-dot{width:6px;height:6px;border-radius:50%;background:#34c759;box-shadow:0 0 12px #34c759}.pricing-hero h2{font-size:clamp(32px,5vw,54px);line-height:1;letter-spacing:-.055em;margin:15px 0 10px}.pricing-hero p{max-width:620px;margin:0 auto;color:#a1a1aa;font-size:14px;line-height:1.65}
+.billing-switch{display:flex;align-items:center;justify-content:center;gap:10px;margin:18px auto 0}.billing-switch .billing-label{font-size:12px;color:#a1a1aa}.billing-toggle{width:48px;height:27px;border-radius:999px;background:#303037;border:1px solid rgba(255,255,255,.12);padding:3px;position:relative}.billing-toggle:after{content:"";display:block;width:19px;height:19px;border-radius:50%;background:#fff;transition:transform .25s cubic-bezier(.2,.8,.2,1)}.billing-toggle.active{background:#fff}.billing-toggle.active:after{transform:translateX(21px);background:#09090b}.save-badge{font-size:10px;color:#6ee7b7;background:rgba(52,199,89,.09);border:1px solid rgba(52,199,89,.18);padding:4px 7px;border-radius:999px}
+.pricing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}.plan-card{position:relative;border:1px solid rgba(255,255,255,.09);background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));border-radius:22px;padding:20px;display:flex;flex-direction:column;min-height:410px;overflow:hidden;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease}.plan-card:before{content:"";position:absolute;inset:-80px auto auto -80px;width:170px;height:170px;background:radial-gradient(circle,rgba(255,255,255,.08),transparent 68%);pointer-events:none}.plan-card:hover{transform:translateY(-4px);border-color:rgba(255,255,255,.18);box-shadow:0 22px 60px rgba(0,0,0,.28)}.plan-card.featured{border-color:rgba(139,92,246,.7);background:linear-gradient(180deg,rgba(124,58,237,.17),rgba(255,255,255,.025));box-shadow:0 18px 65px rgba(124,58,237,.16)}.plan-badge{position:absolute;right:14px;top:14px;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:5px 7px;border-radius:999px;background:#fff;color:#09090b}.plan-icon{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);margin-bottom:18px}.plan-card.featured .plan-icon{background:rgba(139,92,246,.22);border-color:rgba(167,139,250,.25)}.plan-card h3{margin:0 0 6px;font-size:19px;letter-spacing:-.025em}.plan-description{margin:0;color:#8f8f98;font-size:12px;line-height:1.5;min-height:36px}.plan-price{font-size:31px;font-weight:850;letter-spacing:-.05em;margin:22px 0 3px}.plan-price span{font-size:11px;font-weight:500;color:#777780;letter-spacing:0}.plan-yearly{height:16px;color:#6ee7b7;font-size:10px}.plan-features{margin:18px 0 20px;padding:0;list-style:none;display:grid;gap:10px;color:#b5b5bd;font-size:11px;flex:1}.plan-features li{display:flex;align-items:flex-start;gap:8px;line-height:1.4}.feature-check{width:15px;height:15px;min-width:15px;border-radius:50%;display:grid;place-items:center;background:rgba(52,199,89,.11);color:#6ee7b7;font-size:9px}.feature-x{width:15px;height:15px;min-width:15px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.05);color:#666;font-size:9px}.feature-off{color:#5e5e66;text-decoration:line-through}.plan-cta{width:100%;border:1px solid rgba(255,255,255,.12);background:#f5f5f7;color:#09090b;border-radius:12px;padding:11px;font-weight:800;font-size:12px;transition:.2s}.plan-cta:hover{transform:translateY(-1px);background:#fff}.plan-card.featured .plan-cta{background:#8b5cf6;color:#fff;border-color:#8b5cf6}.plan-card.featured .plan-cta:hover{background:#9b72ff}.billing-note{color:#66666f;font-size:10px;line-height:1.55;margin:18px auto 0;text-align:center;max-width:760px}.legal-links{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:12px}.legal-links button{color:#777780;font-size:10px;text-decoration:underline}.publish-badge{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.09);padding:5px 8px;border-radius:999px;color:#777780;font-size:10px}.publish-badge i{width:6px;height:6px;border-radius:50%;background:#34c759;display:block}@media(max-width:1050px){.pricing-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.pricing-modal{padding:18px}.pricing-grid{grid-template-columns:1fr}.plan-card{min-height:0}.pricing-hero h2{font-size:35px}}
+.auth-modal{width:min(480px,calc(100vw - 24px))}.auth-card{display:grid;gap:14px}.auth-brand{display:flex;align-items:center;gap:10px}.auth-brand img{width:36px;height:36px;object-fit:contain;border-radius:10px;background:#000}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--user);padding:4px;border-radius:12px}.auth-tabs button{padding:10px;border-radius:9px;color:var(--muted);font-weight:700}.auth-tabs button.active{background:var(--panel-strong);color:var(--text);box-shadow:0 4px 14px #0000000c}.auth-form{display:grid;gap:10px}.auth-field{display:grid;gap:6px}.auth-field label{font-size:12px;color:var(--muted);font-weight:700}.auth-field input{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--panel-strong);padding:0 13px;outline:none}.auth-field input:focus{border-color:#0071e3;box-shadow:0 0 0 3px #0071e31a}.auth-primary{height:44px;border-radius:12px;background:#0071e3;color:#fff;font-weight:800}.auth-secondary{height:42px;border-radius:12px;border:1px solid var(--line);background:var(--panel-strong);font-weight:700}.auth-error{min-height:18px;font-size:12px;color:#ff3b30}.account-btn{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:var(--panel-strong);font-size:12px;max-width:180px;overflow:hidden}.account-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-avatar{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--text);color:var(--bg);font-size:10px;font-weight:900;flex:none}.account-panel{display:grid;gap:12px}.account-panel .account-meta{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--user)}.account-panel .account-meta strong{display:block;font-size:15px}.account-panel .account-meta small{color:var(--muted);display:block;margin-top:3px}.account-panel .plan-chip{display:inline-flex;margin-top:10px;font-size:11px;padding:5px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+@media(max-width:600px){.account-btn{max-width:120px}.account-btn span{display:none}}
+
+
+/* ============================================================
+   AETHEL HOMEPAGE — responsive hero inspired by the supplied
+   hero-banner component, rebuilt for the existing vanilla app.
+   ============================================================ */
+.home{min-height:100svh;position:relative;overflow:hidden;background:#070708;color:#fafafa;isolation:isolate}
+.home-bg{position:absolute;inset:0;z-index:-3;background:
+ radial-gradient(circle at 50% 30%,rgba(116,83,255,.18),transparent 28%),
+ radial-gradient(circle at 15% 70%,rgba(0,184,255,.10),transparent 26%),
+ linear-gradient(180deg,#050507 0%,#09090d 55%,#050506 100%)}
+.home-grid{position:absolute;inset:0;z-index:-2;opacity:.23;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(to bottom,black,transparent 85%)}
+.home-orb{position:absolute;width:55vw;height:55vw;max-width:760px;max-height:760px;border-radius:50%;right:-12vw;top:8vh;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.18),rgba(104,75,255,.10) 24%,transparent 63%);filter:blur(2px);z-index:-1;animation:orbFloat 10s ease-in-out infinite}
+@keyframes orbFloat{50%{transform:translate3d(-18px,22px,0) scale(1.04)}}
+.home-nav{height:76px;display:flex;align-items:center;justify-content:space-between;width:min(1240px,calc(100% - 40px));margin:auto;position:relative;z-index:4}
+.home-brand{display:inline-flex;align-items:center;gap:11px;color:#fff;text-decoration:none;font-weight:750;letter-spacing:-.04em;font-size:18px}
+.home-brand img{width:34px;height:34px;border-radius:11px;object-fit:contain;background:#0d0d10;border:1px solid rgba(255,255,255,.12)}
+.home-links{display:flex;align-items:center;gap:3px;padding:4px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);backdrop-filter:blur(20px);border-radius:999px}
+.home-links a{color:rgba(255,255,255,.72);text-decoration:none;font-size:13px;padding:9px 13px;border-radius:999px;transition:.2s}
+.home-links a:hover{color:#fff;background:rgba(255,255,255,.08)}
+.home-cta{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:11px 16px;background:#fff;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;transition:.25s;box-shadow:0 10px 40px rgba(255,255,255,.08)}
+.home-cta:hover{transform:translateY(-2px);box-shadow:0 14px 45px rgba(255,255,255,.16)}
+.home-menu{display:none;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:#fff}
+.home-main{width:min(1240px,calc(100% - 40px));margin:auto;min-height:calc(100svh - 76px);display:flex;align-items:center;justify-content:center;padding:50px 0 72px}
+.home-hero{text-align:center;max-width:900px;margin-top:-2vh}
+.home-badge{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.065);backdrop-filter:blur(18px);border-radius:999px;padding:6px 11px 6px 6px;color:rgba(255,255,255,.82);font-size:12px;animation:heroIn .8s .05s both}
+.home-badge span{background:#fff;color:#09090b;border-radius:999px;padding:4px 8px;font-weight:750;font-size:10px}
+.home-title{font-family:"Instrument Serif",Georgia,serif;font-weight:400;font-size:clamp(56px,8.5vw,116px);line-height:.92;letter-spacing:-.055em;margin:24px 0 0;animation:heroIn .9s .14s both}
+.home-title em{font-style:normal;background:linear-gradient(90deg,#fff 0%,#b7b5ff 45%,#fff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.home-desc{max-width:680px;margin:25px auto 0;color:rgba(255,255,255,.62);font-size:clamp(15px,2vw,18px);line-height:1.65;animation:heroIn .9s .23s both}
+.home-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:34px;animation:heroIn .9s .32s both}
+.home-primary{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.16);background:#fff;color:#08080a;text-decoration:none;border-radius:999px;padding:14px 19px;font-size:14px;font-weight:750;transition:.25s}
+.home-primary:hover{transform:translateY(-2px) scale(1.01)}
+.home-secondary{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;padding:13px 17px;font-size:14px;border-radius:999px;transition:.2s}
+.home-secondary:hover{background:rgba(255,255,255,.06)}
+.home-capabilities{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:920px;margin:68px auto 0;animation:heroIn .9s .4s both}
+.home-cap{min-height:96px;text-align:left;padding:15px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);backdrop-filter:blur(14px);border-radius:18px}
+.home-cap strong{display:block;font-size:13px;margin-bottom:6px}.home-cap small{display:block;color:rgba(255,255,255,.48);font-size:11px;line-height:1.45}
+.home-foot{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:28px;color:rgba(255,255,255,.38);font-size:11px;animation:heroIn .9s .48s both}.home-dot{width:5px;height:5px;border-radius:50%;background:#69e29a;box-shadow:0 0 14px #69e29a}
+@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.home.hidden{display:none}
+.app-shell{min-height:100svh;display:none}.app-shell.active{display:block}
+.home-reveal{animation:homeOut .55s cubic-bezier(.2,.8,.2,1) both}@keyframes homeOut{to{opacity:0;transform:scale(.985)}}
+@media(max-width:820px){.home-links{display:none}.home-menu{display:grid;place-items:center}.home-capabilities{grid-template-columns:repeat(2,1fr);margin-top:48px}.home-main{padding-top:30px}.home-title{font-size:clamp(53px,15vw,90px)}}
+@media(max-width:520px){.home-nav,.home-main{width:min(100% - 28px,1240px)}.home-nav{height:68px}.home-nav>.home-cta{display:none}.home-capabilities{grid-template-columns:1fr 1fr}.home-cap{min-height:90px}.home-desc{font-size:15px}.home-actions{margin-top:27px}.home-foot{margin-bottom:10px}}
+
+
+.home{min-height:100svh;position:relative;overflow:hidden;background:#070708;color:#fafafa;isolation:isolate}.home-bg{position:absolute;inset:0;z-index:-3;background:radial-gradient(circle at 50% 30%,rgba(116,83,255,.18),transparent 28%),radial-gradient(circle at 15% 70%,rgba(0,184,255,.10),transparent 26%),linear-gradient(180deg,#050507,#09090d 55%,#050506)}.home-grid{position:absolute;inset:0;z-index:-2;opacity:.23;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:72px 72px}.home-orb{position:absolute;width:55vw;height:55vw;max-width:760px;max-height:760px;border-radius:50%;right:-12vw;top:8vh;background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.18),rgba(104,75,255,.10) 24%,transparent 63%);filter:blur(2px);z-index:-1;animation:orbFloat 10s ease-in-out infinite}@keyframes orbFloat{50%{transform:translate3d(-18px,22px,0) scale(1.04)}}.home-nav{height:76px;display:flex;align-items:center;justify-content:space-between;width:min(1240px,calc(100% - 40px));margin:auto;position:relative;z-index:4}.home-brand{display:inline-flex;align-items:center;gap:11px;color:#fff;text-decoration:none;font-weight:750;letter-spacing:-.04em;font-size:18px}.home-brand img{width:34px;height:34px;border-radius:11px;object-fit:contain;background:#0d0d10;border:1px solid rgba(255,255,255,.12)}.home-links{display:flex;align-items:center;gap:3px;padding:4px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.045);backdrop-filter:blur(20px);border-radius:999px}.home-links a{color:rgba(255,255,255,.72);text-decoration:none;font-size:13px;padding:9px 13px;border-radius:999px;transition:.2s}.home-links a:hover{color:#fff;background:rgba(255,255,255,.08)}.home-cta{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:11px 16px;background:#fff;color:#09090b;text-decoration:none;font-size:13px;font-weight:700;transition:.25s}.home-cta:hover{transform:translateY(-2px)}.home-menu{display:none;width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:#fff}.home-main{width:min(1240px,calc(100% - 40px));margin:auto;min-height:calc(100svh - 76px);display:flex;align-items:center;justify-content:center;padding:50px 0 72px}.home-hero{text-align:center;max-width:900px;margin-top:-2vh}.home-badge{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.065);backdrop-filter:blur(18px);border-radius:999px;padding:6px 11px 6px 6px;color:rgba(255,255,255,.82);font-size:12px;animation:heroIn .8s .05s both}.home-badge span{background:#fff;color:#09090b;border-radius:999px;padding:4px 8px;font-weight:750;font-size:10px}.home-title{font-family:"Instrument Serif",Georgia,serif;font-weight:400;font-size:clamp(56px,8.5vw,116px);line-height:.92;letter-spacing:-.055em;margin:24px 0 0;animation:heroIn .9s .14s both}.home-title em{font-style:normal;background:linear-gradient(90deg,#fff,#b7b5ff 45%,#fff 90%);-webkit-background-clip:text;background-clip:text;color:transparent}.home-desc{max-width:680px;margin:25px auto 0;color:rgba(255,255,255,.62);font-size:clamp(15px,2vw,18px);line-height:1.65;animation:heroIn .9s .23s both}.home-actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:34px;animation:heroIn .9s .32s both}.home-primary{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#08080a;text-decoration:none;border-radius:999px;padding:14px 19px;font-size:14px;font-weight:750;transition:.25s}.home-primary:hover{transform:translateY(-2px)}.home-secondary{display:inline-flex;align-items:center;gap:8px;color:#fff;text-decoration:none;padding:13px 17px;font-size:14px;border-radius:999px}.home-secondary:hover{background:rgba(255,255,255,.06)}.home-capabilities{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;max-width:920px;margin:68px auto 0;animation:heroIn .9s .4s both}.home-cap{min-height:96px;text-align:left;padding:15px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);backdrop-filter:blur(14px);border-radius:18px}.home-cap strong{display:block;font-size:13px;margin-bottom:6px}.home-cap small{display:block;color:rgba(255,255,255,.48);font-size:11px;line-height:1.45}.home-foot{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:28px;color:rgba(255,255,255,.38);font-size:11px}.home-dot{width:5px;height:5px;border-radius:50%;background:#69e29a;box-shadow:0 0 14px #69e29a}@keyframes heroIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}.home.hidden{display:none}.app-shell{min-height:100svh;display:none}.app-shell.active{display:block}.home-reveal{animation:homeOut .55s cubic-bezier(.2,.8,.2,1) both}@keyframes homeOut{to{opacity:0;transform:scale(.985)}}@media(max-width:820px){.home-links{display:none}.home-menu{display:grid;place-items:center}.home-capabilities{grid-template-columns:repeat(2,1fr);margin-top:48px}.home-title{font-size:clamp(53px,15vw,90px)}}@media(max-width:520px){.home-nav,.home-main{width:min(100% - 28px,1240px)}.home-nav{height:68px}.home-nav>.home-cta{display:none}.home-capabilities{grid-template-columns:1fr 1fr}.home-cap{min-height:90px}.home-desc{font-size:15px}}
+
+/* V30 — AETHEL FULL LANDING PAGE */
+.landing-sections{background:#070708;color:#fafafa;position:relative;overflow:hidden}
+.land-section{width:min(1180px,calc(100% - 32px));margin:auto;padding:110px 0;position:relative}
+.land-kicker{display:inline-flex;align-items:center;gap:8px;color:#a9a6ff;border:1px solid rgba(167,139,250,.2);background:rgba(124,58,237,.08);border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.land-kicker .kdot{width:6px;height:6px;border-radius:50%;background:#9b8cff;box-shadow:0 0 14px #9b8cff}
+.land-title{font-family:"Instrument Serif",Georgia,serif;font-weight:400;font-size:clamp(44px,7vw,82px);line-height:.94;letter-spacing:-.055em;margin:18px 0 0;max-width:800px}
+.land-copy{color:#8f8f98;line-height:1.7;max-width:650px;font-size:15px;margin:20px 0 0}
+.cap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:48px}
+.cap-card{min-height:190px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018));border-radius:22px;padding:20px;transition:.3s;position:relative;overflow:hidden}
+.cap-card:after{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-70px;top:-70px;background:radial-gradient(circle,rgba(139,92,246,.2),transparent 70%)}
+.cap-card:hover{transform:translateY(-6px);border-color:rgba(167,139,250,.3);box-shadow:0 25px 70px rgba(0,0,0,.25)}
+.cap-icon{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);margin-bottom:24px;color:#c7c1ff}
+.cap-card h3{font-size:16px;margin:0 0 8px}.cap-card p{font-size:12px;color:#777780;line-height:1.55;margin:0}
+.engine-panel{margin-top:55px;border:1px solid rgba(255,255,255,.1);border-radius:28px;background:linear-gradient(145deg,#101014,#08080a);padding:28px;display:grid;grid-template-columns:1.1fr .9fr;gap:20px;box-shadow:0 35px 100px rgba(0,0,0,.3)}
+.engine-copy h3{font-size:28px;letter-spacing:-.04em;margin:14px 0 10px}.engine-copy p{color:#85858d;line-height:1.7;font-size:13px;max-width:560px}.engine-list{display:grid;gap:9px;margin-top:20px}.engine-row{display:flex;align-items:center;gap:10px;color:#c7c7ce;font-size:12px}.engine-check{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:rgba(52,199,89,.1);color:#73e6a0;font-size:10px}
+.engine-visual{min-height:310px;border-radius:22px;border:1px solid rgba(255,255,255,.08);background:radial-gradient(circle at 50% 45%,rgba(139,92,246,.3),transparent 25%),radial-gradient(circle at 50% 45%,rgba(53,42,130,.3),transparent 48%),#060609;display:grid;place-items:center;position:relative;overflow:hidden}.engine-core{width:120px;height:120px;border-radius:38%;background:linear-gradient(135deg,#fff,#9c91ff 42%,#33246e);box-shadow:0 0 100px rgba(139,92,246,.55),inset 0 0 30px rgba(255,255,255,.45);animation:coreFloat 4s ease-in-out infinite}.engine-ring{position:absolute;width:190px;height:190px;border:1px solid rgba(167,139,250,.3);border-radius:50%;animation:ringSpin 8s linear infinite}.engine-ring.r2{width:260px;height:260px;border-color:rgba(255,255,255,.08);animation-duration:13s;animation-direction:reverse}@keyframes coreFloat{50%{transform:translateY(-9px) scale(1.04)}}@keyframes ringSpin{to{transform:rotate(360deg)}}
+.models-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:45px}.model-card{padding:22px;border-radius:22px;border:1px solid rgba(255,255,255,.09);background:#0c0c0f}.model-card .model-top{display:flex;justify-content:space-between;align-items:center}.model-card h3{margin:0;font-size:17px}.model-status{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#73e6a0}.model-card p{color:#777780;font-size:12px;line-height:1.6;margin:15px 0}.model-tags{display:flex;flex-wrap:wrap;gap:6px}.model-tag{padding:5px 8px;border-radius:999px;background:#15151a;color:#a5a5ad;font-size:9px}
+.agent-layout{display:grid;grid-template-columns:.8fr 1.2fr;gap:14px;margin-top:48px}.agent-card{border:1px solid rgba(255,255,255,.09);background:#0c0c0f;border-radius:24px;padding:24px}.agent-card h3{font-size:20px;margin:0 0 10px}.agent-card p{color:#7e7e86;font-size:12px;line-height:1.65}.steps{display:grid;gap:9px;margin-top:22px}.step{display:flex;align-items:center;gap:12px;padding:11px;border-radius:13px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);font-size:11px;color:#bdbdc4}.step b{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;background:#18131f;color:#b8aaff;font-size:10px}.agent-terminal{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#050507;border-radius:17px;border:1px solid rgba(255,255,255,.07);padding:18px;color:#9b8cff;font-size:11px;line-height:2;min-height:270px}.agent-terminal .muted{color:#55555d}.agent-terminal .green{color:#72e6a0}.agent-terminal .white{color:#dddde2}
+.vision-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:48px}.vision-card{min-height:300px;border-radius:26px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(145deg,#111115,#08080a);padding:25px;position:relative;overflow:hidden}.vision-card h3{font-size:22px;margin:0 0 10px}.vision-card p{color:#7d7d85;font-size:12px;line-height:1.65;max-width:460px}.vision-preview{position:absolute;right:-35px;bottom:-65px;width:260px;height:200px;border-radius:22px;transform:rotate(-7deg);background:linear-gradient(135deg,#202025,#09090c);border:1px solid rgba(255,255,255,.1);box-shadow:0 25px 70px #0008}.vision-preview:before{content:"AETHEL\A VISION";white-space:pre;position:absolute;left:24px;top:25px;color:#fff;font-weight:800;font-size:24px;line-height:1.05}.vision-preview:after{content:"LOCAL ANALYSIS";position:absolute;left:24px;bottom:22px;color:#777;font-size:9px;letter-spacing:.15em}
+.price-teaser{margin-top:45px;border:1px solid rgba(255,255,255,.1);border-radius:28px;padding:34px;background:linear-gradient(120deg,rgba(124,58,237,.15),rgba(255,255,255,.03));display:flex;align-items:center;justify-content:space-between;gap:20px}.price-teaser h3{font-size:30px;letter-spacing:-.04em;margin:0}.price-teaser p{color:#85858d;font-size:12px;margin:8px 0 0}.land-button{display:inline-flex;align-items:center;gap:9px;border-radius:999px;padding:12px 17px;border:1px solid rgba(255,255,255,.12);background:#fff;color:#08080a;font-weight:800;font-size:12px;white-space:nowrap}.land-button.dark{background:rgba(255,255,255,.06);color:#fff}
+.final-cta{padding:125px 0 140px;text-align:center;background:radial-gradient(circle at 50% 45%,rgba(124,58,237,.2),transparent 34%),#070708}.final-cta h2{font-family:"Instrument Serif",Georgia,serif;font-weight:400;font-size:clamp(48px,8vw,92px);line-height:.92;letter-spacing:-.055em;margin:16px auto;max-width:850px}.final-cta p{max-width:590px;margin:0 auto;color:#85858d;font-size:14px;line-height:1.7}.final-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:30px}.land-footer{border-top:1px solid rgba(255,255,255,.08);padding:28px 0;color:#5d5d65;font-size:10px}.land-footer-inner{width:min(1180px,calc(100% - 32px));margin:auto;display:flex;justify-content:space-between;gap:15px}.land-footer a{color:#85858d;text-decoration:none}
+@media(max-width:900px){.cap-grid{grid-template-columns:1fr 1fr}.engine-panel,.agent-layout{grid-template-columns:1fr}.models-grid{grid-template-columns:1fr}.vision-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.land-section{padding:78px 0}.cap-grid{grid-template-columns:1fr}.price-teaser{flex-direction:column;align-items:flex-start}.final-cta{padding:90px 0 105px}.land-footer-inner{flex-direction:column}}
+
+</style>
+</head>
+<body>
+<div id="preloader"><div class="loader"><div class="loader-mark"><img src="aethel-logo.png" alt="Logo oficial Aethel"></div><span>Preparing Aethel</span></div></div>
+<canvas id="webgl"></canvas><div class="ambient"></div>
+
+<section class="home" id="home" aria-label="Página inicial do Aethel">
+  <div class="home-bg"></div><div class="home-grid"></div><div class="home-orb"></div>
+  <header class="home-nav">
+    <a class="home-brand" href="#home" aria-label="Aethel início"><img src="aethel-logo.png" alt="Aethel"><span>Aethel</span></a>
+    <nav class="home-links" aria-label="Navegação principal">
+      <a href="#capabilities">Capacidades</a><a href="#brain">Cérebro</a><a href="#models">Modelos</a><a href="#agent">Agent</a><a href="#pricing">Preços</a>
+    </nav>
+    <a class="home-cta" href="#app" data-open-app>Abrir Aethel <span>↗</span></a>
+    <button class="home-menu" id="homeMenu" aria-label="Abrir Aethel">☰</button>
+  </header>
+  <main class="home-main">
+    <div class="home-hero">
+      <div class="home-badge"><span>LOCAL AI</span> Inteligência para criar, pensar e executar</div>
+      <h1 class="home-title">Pense maior.<br><em>Crie com Aethel.</em></h1>
+      <p class="home-desc">Uma IA construída para conversar, raciocinar, escrever código, criar projetos, trabalhar com imagens e transformar ideias em coisas reais — com uma arquitetura local e um workspace feito para você.</p>
+      <div class="home-actions"><a class="home-primary" href="#app" data-open-app>Começar agora <span>→</span></a><a class="home-secondary" href="#capabilities">Explorar Aethel <span>↓</span></a></div>
+      <div class="home-capabilities" id="capabilities">
+        <div class="home-cap"><strong>Reasoning</strong><small>Raciocínio, matemática e problemas complexos.</small></div>
+        <div class="home-cap"><strong>Code & Projects</strong><small>Crie sites, apps e código em vários idiomas.</small></div>
+        <div class="home-cap"><strong>Vision</strong><small>Analise arquivos e trabalhe com imagens.</small></div>
+        <div class="home-cap"><strong>Agent Workspace</strong><small>Planeje, construa, teste e organize projetos.</small></div>
+      </div>
+      <div class="home-foot"><span class="home-dot"></span><span>Arquitetura local • Ollama-ready • Aethel Core</span></div>
+    </div>
+  </main>
+</section>
+
+<div class="landing-sections">
+  <section class="land-section" id="brain">
+    <span class="land-kicker"><i class="kdot"></i> O cérebro do Aethel</span>
+    <h2 class="land-title">Uma arquitetura feita para trabalhar em conjunto.</h2>
+    <p class="land-copy">O Aethel combina o núcleo local com modelos de linguagem e ferramentas especializadas. A interface apresenta essa arquitetura como um sistema único, em vez de esconder como cada capacidade participa do trabalho.</p>
+    <div class="engine-panel">
+      <div class="engine-copy"><div class="land-kicker">AETHEL CORE</div><h3>Local-first. Modular. Extensível.</h3><p>O núcleo pode cuidar de ferramentas especializadas enquanto um modelo local assume tarefas de linguagem mais abertas. Isso permite evoluir o Aethel sem reconstruir o workspace.</p><div class="engine-list"><div class="engine-row"><span class="engine-check">✓</span> Raciocínio e matemática</div><div class="engine-row"><span class="engine-check">✓</span> Especialistas de código</div><div class="engine-row"><span class="engine-check">✓</span> Modelo local via Ollama</div><div class="engine-row"><span class="engine-check">✓</span> Ferramentas de imagem e arquivos</div><div class="engine-row"><span class="engine-check">✓</span> Camada de Agent para projetos</div></div></div>
+      <div class="engine-visual"><div class="engine-ring"></div><div class="engine-ring r2"></div><div class="engine-core"></div></div>
+    </div>
+  </section>
+
+  <section class="land-section" id="models">
+    <span class="land-kicker"><i class="kdot"></i> Modelos</span><h2 class="land-title">Use o modelo certo para cada trabalho.</h2><p class="land-copy">A interface do Aethel foi pensada para uma arquitetura com múltiplos especialistas. O modelo escolhido pode mudar conforme o tipo de tarefa e a infraestrutura disponível.</p>
+    <div class="models-grid">
+      <article class="model-card"><div class="model-top"><h3>Aethel Reasoning</h3><span class="model-status">Core</span></div><p>Camada para raciocínio, matemática, roteamento de ferramentas e tarefas estruturadas.</p><div class="model-tags"><span class="model-tag">Math</span><span class="model-tag">Reasoning</span><span class="model-tag">Tools</span></div></article>
+      <article class="model-card"><div class="model-top"><h3>Local LLM</h3><span class="model-status">Ollama</span></div><p>Modelo de linguagem local para conversas abertas, escrita, planejamento e geração de código.</p><div class="model-tags"><span class="model-tag">Chat</span><span class="model-tag">Code</span><span class="model-tag">Planning</span></div></article>
+      <article class="model-card"><div class="model-top"><h3>Aethel Vision</h3><span class="model-status">Local</span></div><p>Camada visual para trabalhar com imagens, arquivos e fluxos de criação.</p><div class="model-tags"><span class="model-tag">Vision</span><span class="model-tag">Images</span><span class="model-tag">Files</span></div></article>
+    </div>
+  </section>
+
+  <section class="land-section" id="agent">
+    <span class="land-kicker"><i class="kdot"></i> Agent Workspace</span><h2 class="land-title">Da ideia ao projeto funcionando.</h2><p class="land-copy">O Agent foi pensado para transformar uma solicitação em um fluxo de trabalho: entender, planejar, construir, verificar e entregar. A execução real depende das ferramentas e permissões disponíveis no ambiente.</p>
+    <div class="agent-layout"><div class="agent-card"><h3>Um fluxo, várias etapas.</h3><p>Em vez de limitar o Aethel a uma resposta de texto, o workspace pode organizar tarefas de projeto em etapas claras.</p><div class="steps"><div class="step"><b>01</b> Entender o objetivo</div><div class="step"><b>02</b> Criar um plano</div><div class="step"><b>03</b> Construir arquivos</div><div class="step"><b>04</b> Testar e corrigir</div><div class="step"><b>05</b> Entregar o projeto</div></div></div><div class="agent-card"><div class="agent-terminal"><div class="muted">$ aethel agent --project banana-site</div><div class="white">→ analisando requisitos...</div><div class="white">→ criando estrutura...</div><div class="white">→ gerando interface...</div><div class="white">→ executando testes...</div><div class="green">✓ projeto validado</div><div class="green">✓ arquivos prontos</div><div class="muted">$ ready</div></div></div></div>
+  </section>
+
+  <section class="land-section" id="vision">
+    <span class="land-kicker"><i class="kdot"></i> Vision + criação</span><h2 class="land-title">Veja, analise e crie dentro do mesmo espaço.</h2><p class="land-copy">Arquivos e imagens fazem parte da experiência do Aethel. A interface separa análise, geração e organização para que seu projeto não fique espalhado por várias ferramentas.</p>
+    <div class="vision-grid"><article class="vision-card"><h3>Analyze</h3><p>Envie um arquivo para obter contexto, encontrar informações e trabalhar sobre o conteúdo disponível.</p><div class="vision-preview"></div></article><article class="vision-card"><h3>Create</h3><p>Use a camada visual do Aethel para criar imagens e guardar os resultados na biblioteca do workspace.</p><div class="vision-preview" style="transform:rotate(7deg);filter:hue-rotate(35deg)"></div></article></div>
+  </section>
+
+  <section class="land-section" id="pricing">
+    <span class="land-kicker"><i class="kdot"></i> Planos</span><h2 class="land-title">Escolha o espaço que acompanha seu trabalho.</h2><p class="land-copy">Comece com o essencial e avance quando seus projetos exigirem mais recursos. Os planos exibidos são a configuração comercial atual da interface.</p>
+    <div class="price-teaser"><div><h3>Free, Creator, Pro e Enterprise.</h3><p>Mensal ou anual. Abra a tabela completa de recursos e valores.</p></div><button class="land-button" id="landingPricingBtn">Ver planos <span>→</span></button></div>
+  </section>
+
+  <section class="final-cta" id="final-cta"><span class="land-kicker">AETHEL</span><h2>Transforme uma ideia em algo real.</h2><p>Converse, raciocine, programe, analise e construa em um único workspace.</p><div class="final-actions"><a class="land-button" href="#app" data-open-app>Abrir Aethel <span>↗</span></a><a class="land-button dark" href="#brain">Conhecer a arquitetura</a></div></section>
+  <footer class="land-footer"><div class="land-footer-inner"><span>© 2026 Aethel AI</span><span>Local-first AI workspace</span><a href="#home">Voltar ao topo ↑</a></div></footer>
+</div>
+<div class="app-shell" id="appShell"><div class="app" id="app">
+<aside class="sidebar"><div class="side-inner">
+  <div class="brand"><div class="brand-mark"><img src="aethel-logo.png" alt="Logo oficial Aethel"></div><span>Aethel</span></div>
+  <button class="new-chat" id="newChat"><i data-lucide="plus"></i><span>New chat</span></button>
+  <div class="section-label">Recents</div><div class="history" id="history"></div>
+  <div class="section-label">Workspace</div>
+  <div class="tool-grid">
+    <button class="workspace-btn" id="createImage"><i data-lucide="image"></i> Imagem</button>
+    <button class="workspace-btn" id="openLibrary"><i data-lucide="library"></i> Biblioteca</button>
+    <button class="workspace-btn" id="openProjects"><i data-lucide="folder-kanban"></i> Projetos</button>
+    <button class="workspace-btn" id="openScheduled"><i data-lucide="calendar-clock"></i> Agendado</button>
+  </div>
+  <button class="plan-button" id="plansBtn"><span>Planos Aethel</span><small>Ver planos</small></button>
+  <div class="side-bottom">
+    <button class="side-action" id="settingsBtn"><i data-lucide="settings-2"></i> Settings</button>
+    <button class="side-action" id="themeBtn"><i data-lucide="moon"></i> Appearance</button>
+  </div>
+</div></aside>
+
+<main class="main">
+<header class="topbar">
+  <button class="icon-btn" id="sidebarBtn"><i data-lucide="panel-left"></i></button><button class="icon-btn" id="homeBtn" title="Página inicial"><i data-lucide="house"></i></button>
+  <div class="model-wrap" id="modelWrap">
+    <button class="model-pill" id="modelBtn" type="button" aria-haspopup="listbox" aria-expanded="false">Aethel Reasoning <i data-lucide="chevron-down" width="14"></i></button>
+    <div class="model-menu" id="modelMenu" role="listbox" aria-label="Escolher modelo">
+      <button class="model-option selected" type="button" data-model="Aethel Reasoning" role="option" aria-selected="true">
+        <span class="model-icon">R</span><span class="model-option-text"><span class="model-option-name">Aethel Reasoning</span><span class="model-option-desc">Mais etapas de raciocínio e verificação</span></span><span class="model-check">✓</span>
+      </button>
+      <button class="model-option" type="button" data-model="Aethel Fast" role="option" aria-selected="false">
+        <span class="model-icon">F</span><span class="model-option-text"><span class="model-option-name">Aethel Fast</span><span class="model-option-desc">Resposta rápida para tarefas simples</span></span><span class="model-check">✓</span>
+      </button>
+      <button class="model-option" type="button" data-model="Aethel Creative" role="option" aria-selected="false">
+        <span class="model-icon">C</span><span class="model-option-text"><span class="model-option-name">Aethel Creative</span><span class="model-option-desc">Escrita, ideias e exploração</span></span><span class="model-check">✓</span>
+      </button>
+      <button class="model-option" type="button" data-model="Aethel Logic" role="option" aria-selected="false">
+        <span class="model-icon">L</span><span class="model-option-text"><span class="model-option-name">Aethel Logic</span><span class="model-option-desc">Problemas estruturados e lógica</span></span><span class="model-check">✓</span>
+      </button>
+    </div>
+  </div>
+  <div class="top-spacer"></div><div class="status"><span class="dot"></span> Local Brain</div>
+  <button class="account-btn" id="accountBtn" type="button"><span class="account-avatar">A</span><span>Entrar</span></button>
+  <button class="icon-btn" id="exportBtn" title="Export"><i data-lucide="download"></i></button>
+</header>
+<section class="chat" id="chat"><div class="messages" id="messages"></div></section>
+
+<div class="composer-wrap">
+  <div class="composer" id="composer">
+    <div class="thinking-aura"></div>
+    <textarea id="input" rows="1" placeholder="Message Aethel…"></textarea>
+    <div class="composer-tools">
+      <button class="icon-btn" id="attach" title="Attach"><i data-lucide="paperclip"></i></button>
+      <input class="file-input" id="file" type="file" multiple>
+      <button class="icon-btn" id="web" title="Web search"><i data-lucide="globe-2"></i></button>
+      <button class="icon-btn" id="voice" title="Voice input"><i data-lucide="mic"></i></button>
+      <span id="attachmentLabel" style="font-size:11px;color:var(--muted)"></span>
+      <button class="send" id="send" title="Send"><i data-lucide="arrow-up" width="18"></i></button>
+    </div>
+    <div class="drop">Drop files to attach</div>
+  </div>
+</div>
+</main></div></div>
+
+
+<div class="aethel-toast" id="aethelToast" role="status" aria-live="polite"></div>
+<div class="modal-backdrop workspace-modal" id="imageModal"><div class="modal">
+ <div class="modal-head"><h2>Criar imagem</h2><button class="icon-btn close-workspace" data-close="imageModal"><i data-lucide="x"></i></button></div>
+ <div class="setting"><label>Descreva a imagem</label><small>O Aethel Vision gera PNG localmente. A geração funciona mesmo sem instalar um modelo externo; se houver um servidor de difusão local, ele será usado automaticamente.</small><textarea id="imagePrompt" placeholder="Ex.: uma lata premium vermelha em uma fábrica futurista, iluminação cinematográfica"></textarea></div>
+ <div class="setting"><div class="setting-row"><label>Estilo</label><select id="imageStyle"><option value="cinematic">Cinematic</option><option value="editorial">Editorial</option><option value="minimal">Minimal</option><option value="futuristic">Futuristic</option></select></div></div>
+ <div class="setting"><div class="setting-row"><label>Proporção</label><select id="imageAspect"><option value="1:1">1:1</option><option value="3:2">3:2</option><option value="2:3">2:3</option></select></div></div>
+ <button class="model-pill" id="generateImage" style="margin-top:8px">Gerar imagem</button><div id="imageResult"></div>
+</div></div>
+<div class="modal-backdrop workspace-modal" id="libraryModal"><div class="modal"><div class="modal-head"><h2>Biblioteca</h2><button class="icon-btn close-workspace" data-close="libraryModal"><i data-lucide="x"></i></button></div><div class="workspace-list" id="libraryList"></div></div></div>
+<div class="modal-backdrop workspace-modal" id="agentModal"><div class="modal"><div class="modal-head"><h2>Aethel Agent</h2><button class="icon-btn close-workspace" data-close="agentModal"><i data-lucide="x"></i></button></div><div class="setting"><small>Descreva o projeto. O Agent planeja, cria arquivos, testa Python e gera um ZIP.</small><textarea id="agentGoal" placeholder="Crie um site de banana moderno com HTML, CSS e JavaScript"></textarea><button class="model-pill" id="runAgent" style="margin-top:10px">Executar Agent</button><pre id="agentResult" style="white-space:pre-wrap;color:#aaa;margin-top:14px"></pre></div></div></div><div class="modal-backdrop workspace-modal" id="projectsModal"><div class="modal"><div class="modal-head"><h2>Projetos</h2><button class="icon-btn close-workspace" data-close="projectsModal"><i data-lucide="x"></i></button></div><div class="setting"><input id="projectName" placeholder="Nome do projeto"><button class="model-pill" id="addProject" style="margin-top:8px">Criar projeto</button></div><div class="workspace-list" id="projectList"></div></div></div>
+<div class="modal-backdrop workspace-modal" id="scheduledModal"><div class="modal"><div class="modal-head"><h2>Agendado</h2><button class="icon-btn close-workspace" data-close="scheduledModal"><i data-lucide="x"></i></button></div><div class="setting"><input id="scheduleText" placeholder="O que você quer lembrar?"><input id="scheduleWhen" type="datetime-local" style="margin-top:8px"><button class="model-pill" id="addSchedule" style="margin-top:8px">Agendar</button></div><div class="workspace-list" id="scheduleList"></div></div></div>
+<div class="modal-backdrop" id="modalBackdrop">
+<div class="modal">
+ <div class="modal-head"><h2>Settings</h2><button class="icon-btn" id="closeModal"><i data-lucide="x"></i></button></div>
+ <div class="setting"><label>Custom Instructions</label><small>Tell Aethel how you want it to respond.</small>
+  <textarea id="systemPrompt" placeholder="You are a helpful, precise AI assistant..."></textarea></div>
+ <div class="setting"><div class="setting-row"><div><label>Temperature</label><small>Creativity of generated responses.</small></div><b id="tempValue">0.7</b></div><input class="range" id="temp" type="range" min="0" max="1.5" step=".1" value=".7"></div>
+ <div class="setting"><div class="setting-row"><div><label>Dark appearance</label><small>Switch between light and dark ambient UI.</small></div><button class="toggle" id="themeToggle"></button></div></div>
+ <div class="setting"><div class="setting-row"><div><label>Export conversation</label><small>Download the current chat as JSON.</small></div><button class="model-pill" id="modalExport">Export</button></div></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.min.js" onerror="window.THREE=null"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js" onerror="window.gsap=null"></script>
+<script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.js" onerror="window.lucide=null"></script>
+<script>
+/* ============================================================
+   AETHEL — local AI interface
+   The UI talks only to the local Aethel Brain server.
+   ============================================================ */
+
+const $ = s => document.querySelector(s);
+const uid = () => {
+  try {
+    if (window.crypto?.randomUUID) return crypto.randomUUID();
+  } catch (_) {}
+  return Date.now()+"-"+Math.random().toString(36).slice(2);
+};
+const readJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch (_) {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+};
+const defaultChat = () => ({
+  id:uid(),
+  title:"Welcome to Aethel",
+  messages:[{
+    role:"assistant",
+    content:"Hello. I’m Aethel. Ask me anything — I can help you reason, write, analyze code, or explore an idea."
+  }]
+});
+const storedChats = readJSON("aethel_chats", null);
+const storedSettings = readJSON("aethel_settings", null);
+const state = {
+  chats: Array.isArray(storedChats) && storedChats.length ? storedChats : [defaultChat()],
+  active:null,
+  settings: storedSettings && typeof storedSettings === "object" ? {
+    systemPrompt: typeof storedSettings.systemPrompt === "string" ? storedSettings.systemPrompt : "",
+    temperature: Number.isFinite(+storedSettings.temperature) ? +storedSettings.temperature : .7,
+    dark: Boolean(storedSettings.dark)
+  } : {
+    systemPrompt:"",
+    temperature:.7,
+    dark:window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ?? false
+  },
+  web:false,
+  attachments:[],
+  generating:false,
+  model:localStorage.getItem("aethel_model") || "Aethel Reasoning"
+};
+state.chats = state.chats.filter(c=>c && c.id).map(c=>({
+  id:String(c.id),
+  title:typeof c.title==="string" && c.title ? c.title : "New chat",
+  messages:Array.isArray(c.messages) ? c.messages.filter(m=>m && (m.role==="user" || m.role==="assistant")).map(m=>({
+    role:m.role,
+    content:String(m.content ?? ""), thinking:Boolean(m.thinking)
+  })) : []
+}));
+if(!state.chats.length) state.chats=[defaultChat()];
+state.active = state.chats[0].id;
+
+function save(){localStorage.setItem("aethel_chats",JSON.stringify(state.chats));localStorage.setItem("aethel_settings",JSON.stringify(state.settings))}
+function current(){return state.chats.find(c=>c.id===state.active)}
+function escapeHTML(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+
+/* Basic markdown renderer: code fences, paragraphs, bold and inline code. */
+function renderMarkdown(text){
+  text = String(text ?? "");
+  const blocks = [];
+  text = text.replace(/```([\w+-]+)?\s*\n?([\s\S]*?)```/g, (_, lang, code) => {
+    const id = blocks.length;
+    const safeLang = escapeHTML(lang || "code");
+    const cleanCode = code.trim();
+    blocks.push(
+      `<div class="code"><div class="code-head"><span>${safeLang}</span>` +
+      `<button type="button" class="tool copy-code" data-code="${encodeURIComponent(cleanCode)}">Copy Code</button></div>` +
+      `<pre><code>${escapeHTML(cleanCode)}</code></pre></div>`
+    );
+    return `@@CODE${id}@@`;
+  });
+  let out = escapeHTML(text)
+    .replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\n/g,"<br>");
+  blocks.forEach((b,i) => { out = out.replace(`@@CODE${i}@@`, b); });
+  return out;
+}
+function render(){
+  const h=$("#history"), m=$("#messages");
+  if(!h || !m) return;
+  h.innerHTML="";
+
+  [...state.chats].reverse().forEach(c=>{
+    const row=document.createElement("div");
+    row.className="chat-row "+(c.id===state.active?"active":"");
+    row.innerHTML=`<i data-lucide="message-circle" width="15"></i><span class="chat-title">${escapeHTML(c.title||"New chat")}</span><span class="row-actions">
+      <button type="button" class="row-menu tool rename-chat" title="Rename chat" aria-label="Rename chat"><i data-lucide="pencil" width="14"></i></button>
+      <button type="button" class="row-menu tool delete-chat" title="Delete chat" aria-label="Delete chat"><i data-lucide="trash-2" width="14"></i></button>
+    </span>`;
+    row.onclick=e=>{
+      if(e.target.closest(".row-actions")) return;
+      state.active=c.id;
+      render();
+    };
+
+    row.querySelector(".rename-chat").onclick=e=>{
+      e.stopPropagation();
+      const currentTitle=c.title||"New chat";
+      const next=window.prompt("Nome da conversa:",currentTitle);
+      if(next===null) return;
+      const clean=next.trim().replace(/\s+/g," ");
+      if(!clean) return;
+      c.title=clean.slice(0,80);
+      if(c.remoteId){ apiFetch(`/api/chats/${encodeURIComponent(c.remoteId)}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:c.title})}).catch(()=>{}); }
+      save(); render();
+    };
+
+    row.querySelector(".delete-chat").onclick=e=>{
+      e.stopPropagation();
+      const wasActive=c.id===state.active;
+      state.chats=state.chats.filter(x=>x.id!==c.id);
+      if(c.remoteId){ apiFetch(`/api/chats/${encodeURIComponent(c.remoteId)}`,{method:"DELETE"}).catch(()=>{}); }
+
+      if(!state.chats.length){
+        const fresh={id:uid(),title:"New chat",messages:[]};
+        state.chats=[fresh];
+        state.active=fresh.id;
+      }else if(wasActive){
+        state.active=state.chats[0].id;
+      }
+
+      save(); render();
+    };
+    h.appendChild(row);
+  });
+
+  let c=current();
+  if(!c){
+    c={id:uid(),title:"New chat",messages:[]};
+    state.chats.push(c);
+    state.active=c.id;
+    save();
+  }
+  c.messages=Array.isArray(c.messages)?c.messages:[];
+
+  m.innerHTML="";
+  if(!c.messages.length){
+    m.innerHTML=`<div class="empty"><h1>What will we create?</h1><p>Reason, write, code, research and explore with Aethel.</p><div class="suggestions"><button type="button" class="suggestion">Explain a complex idea</button><button type="button" class="suggestion">Build something</button><button type="button" class="suggestion">Analyze data</button></div></div>`;
+  }
+
+  c.messages.forEach((msg,i)=>{
+    const el=document.createElement("article");
+    el.className="msg "+(msg.role==="user"?"user":"ai");
+    const body=msg.role==="assistant" && msg.thinking ? '<div class="thinking-box"><span>Aethel está pensando</span><span class="thinking-dots"><span></span><span></span><span></span></span></div>' : renderMarkdown(msg.content);
+    el.innerHTML=msg.role==="user"
+      ? `<div class="bubble"><div class="bubble-content">${body}</div></div>`
+      : `<div><div class="avatar"><img src="aethel-logo.png" alt="Aethel"></div></div><div class="bubble"><div class="bubble-content">${body}</div><div class="message-tools">
+        <button type="button" class="tool copy-msg" data-i="${i}" title="Copy" aria-label="Copy"><i data-lucide="copy" width="15"></i></button>
+        <button type="button" class="tool regen" data-i="${i}" title="Regenerate" aria-label="Regenerate"><i data-lucide="refresh-cw" width="15"></i></button>
+        <button type="button" class="tool speak" data-i="${i}" title="Read aloud" aria-label="Read aloud"><i data-lucide="volume-2" width="15"></i></button>
+        <button type="button" class="tool" title="Like" aria-label="Like"><i data-lucide="thumbs-up" width="15"></i></button>
+        <button type="button" class="tool" title="Dislike" aria-label="Dislike"><i data-lucide="thumbs-down" width="15"></i></button>
+      </div></div>`;
+    m.appendChild(el);
+  });
+
+  if(window.lucide?.createIcons) lucide.createIcons();
+
+  m.querySelectorAll(".copy-msg").forEach(b=>b.onclick=async()=>{
+    try { await navigator.clipboard?.writeText(c.messages[+b.dataset.i].content); } catch (_) {}
+  });
+  m.querySelectorAll(".copy-code").forEach(b=>b.onclick=async()=>{
+    try { await navigator.clipboard?.writeText(decodeURIComponent(b.dataset.code)); } catch (_) {}
+  });
+  m.querySelectorAll(".speak").forEach(b=>b.onclick=()=>{
+    if(!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(c.messages[+b.dataset.i].content));
+  });
+  m.querySelectorAll(".regen").forEach(b=>b.onclick=()=>regenerate(+b.dataset.i));
+  m.querySelectorAll(".suggestion").forEach(b=>b.onclick=()=>{
+    $("#input").value=b.textContent; autoSize(); send();
+  });
+
+  // Deliberately no automatic scroll here. Scrolling is controlled by send()
+  // and the streaming updater so Android/Chrome cannot repeatedly reposition the chat.
+}
+async function regenerate(i){
+  const c=current();
+  if(state.generating || !c || c.messages[i]?.role!=="assistant") return;
+
+  // Remove this assistant response and every later message, then regenerate
+  // from the user message immediately before it.
+  const userIndex=i-1;
+  if(userIndex<0 || c.messages[userIndex]?.role!=="user") return;
+  c.messages.splice(userIndex+1);
+  save(); render();
+  await generateResponse();
+}
+async function send(fromVoice=false){
+  const input=$("#input"), text=input.value.trim();
+  if(!text || state.generating) return;
+  if(/^\s*\/awwwards\b/i.test(text)) return runAwwwards(text);
+  if(/^\s*\/(?:teste|motion|animate)\b/i.test(text)) return runMotion(text);
+  if(/^\s*\/roblox\b/i.test(text)) return runRoblox(text);
+
+  const c=current();
+  c.messages.push({role:"user",content:text});
+  if(c.title==="Welcome to Aethel"||c.title==="New chat") c.title=text.slice(0,34);
+  input.value=""; autoSize(); save(); render();
+  await generateResponse(fromVoice);
+}
+
+async function runMotion(command){
+  const prompt=command.replace(/^\s*\/(?:teste|motion|animate)\s*/i,"").trim()||"Crie uma intro 3D cinematográfica premium";
+  const modal=$("#motionModal"); modal.classList.add("open"); $("#motionPrompt").value=prompt; await createMotion();
+}
+async function createMotion(){
+  const prompt=$("#motionPrompt").value.trim(); if(!prompt)return; const file=$("#motionImage").files?.[0]; let image="";
+  if(file){ image=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result));r.onerror=rej;r.readAsDataURL(file);}); }
+  $("#motionStatus").textContent="Gerando cena e preview…";
+  try{const r=await apiFetch('/api/motion',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,image})});const d=await r.json();if(!r.ok)throw new Error(d.error||d.detail||'Falha');$("#motionPreview").srcdoc=d.preview;const a=$("#motionDownload");a.href=d.download;a.style.display='block';a.textContent='Baixar projeto ZIP';$("#motionStatus").textContent='✓ Preview pronto\n'+(d.features||[]).join(' • ');}catch(e){$("#motionStatus").textContent='Erro: '+e.message;}
+}
+async function runRoblox(command){
+  const prompt=command.replace(/^\s*\/roblox\s*/i,"").trim()||"Crie um sistema Roblox completo";
+  const c=current(); if(!authState.user){toast("Entre para usar o Roblox Game Engineering Engine.");authView('login');return;} if(state.generating)return;
+  state.generating=true;c.messages.push({role:'user',content:command});c.messages.push({role:'assistant',content:'🎮 **Roblox Game Engineering Engine ativado.**\n\nGerando arquitetura Server/Client/Shared, Luau e pacote para Roblox Studio…'});save();render();
+  try{const r=await apiFetch('/api/roblox',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Falha');c.messages.push({role:'assistant',content:`## 🎮 Projeto Roblox criado\n\n**Projeto:** ${d.project}\n\n**Arquivos:** ${(d.files||[]).map(x=>'`'+x+'`').join(', ')}\n\n[Baixar projeto](${d.download})`});}catch(e){c.messages.push({role:'assistant',content:'❌ '+e.message});}finally{state.generating=false;save();render();}
+}
+async function runAwwwards(command){
+  const brief=command.replace(/^\s*\/awwwards\s*/i,"").trim()||"crie uma experiência web premium original";
+  const c=current();
+  if(!authState.user){ toast("Entre na sua conta para usar o Agent Awwwards."); authView("login"); return; }
+  if(state.generating)return;
+  state.generating=true; $('#composer')?.classList.add('thinking');
+  c.messages.push({role:'user',content:command});
+  c.messages.push({role:'assistant',content:'🎨 **Awwwards Creative Engine ativado.**\n\nVou transformar seu briefing em conceito, arquitetura, design system, motion e código — depois validar e corrigir o projeto.',thinking:false});
+  save(); render();
+  try{
+    const r=await apiFetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal:'/Awwwards '+brief})});
+    const d=await r.json();
+    if(!r.ok) throw new Error(d.detail||d.error||('Agent HTTP '+r.status));
+    const checks=d.checks||{};
+    const files=(d.files||[]).slice(0,18).map(x=>'`'+x+'`').join(', ');
+    const result=`## ✦ Projeto Awwwards criado\n\n**Projeto:** ${d.project||'Aethel Web Experience'}\n**Modo:** Creative Web Engine\n**Arquivos:** ${files||'gerados'}\n\n### QA\n${'`'+JSON.stringify(checks,null,2)+'`'}\n\n[Baixar projeto](${d.download||'#'})`;
+    c.messages.push({role:'assistant',content:result});
+  }catch(err){
+    c.messages.push({role:'assistant',content:'❌ **O Awwwards Engine não conseguiu concluir o projeto.**\n\n'+String(err.message||err)});
+  }finally{state.generating=false;$('#composer')?.classList.remove('thinking');save();render();checkAethelServer();}
+}
+
+/* Local brain connection — no external API. */
+const API_BASE = location.protocol === "file:" ? "http://127.0.0.1:5000" : "";
+const authState = { user: null, online: false };
+function authToken(){ try{return localStorage.getItem("aethel_session_token")||""}catch(_){return ""} }
+function setAuthToken(token){ try{ if(token) localStorage.setItem("aethel_session_token",token); else localStorage.removeItem("aethel_session_token"); }catch(_){} }
+function apiFetch(path, options={}){
+  const headers={...(options.headers||{})};
+  const token=authToken();
+  if(token) headers.Authorization="Bearer "+token;
+  return fetch(API_BASE+path,{...options,headers,credentials:"include"});
+}
+function authInitial(user){ return String(user?.name||"A").trim().charAt(0).toUpperCase()||"A"; }
+function updateAccountUI(){
+  const b=$("#accountBtn"); if(!b) return;
+  if(authState.user){
+    b.innerHTML=`<span class="account-avatar">${escapeHTML(authInitial(authState.user))}</span><span>${escapeHTML(authState.user.name||"Conta")}</span>`;
+  }else{ b.innerHTML='<span class="account-avatar">A</span><span>Entrar</span>'; }
+}
+function authView(mode="login") {
+  const modal=$("#authModal"); if(!modal) return; modal.classList.add("open");
+  const forms=$("#authForms"), panel=$("#accountPanel");
+  if(authState.user){
+    forms.style.display="none"; panel.style.display="grid"; $("#accountName").textContent=authState.user.name||"Aethel User"; $("#accountEmail").textContent=authState.user.email||""; $("#accountPlan").textContent=(authState.user.plan||"free").toUpperCase(); $("#authTitle").textContent="Sua conta";
+  }else{
+    forms.style.display="grid"; panel.style.display="none"; $("#authTitle").textContent=mode==="register"?"Criar conta":"Entrar no Aethel"; setAuthMode(mode);
+  }
+}
+function setAuthMode(mode){
+  const login=mode!=="register"; $("#loginForm").style.display=login?"grid":"none"; $("#registerForm").style.display=login?"none":"grid"; $("#loginTab").classList.toggle("active",login); $("#registerTab").classList.toggle("active",!login); $("#authTitle").textContent=login?"Entrar no Aethel":"Criar sua conta Aethel"; $("#loginError").textContent=""; $("#registerError").textContent="";
+}
+async function loadRemoteChats(){
+  if(!authState.user) return;
+  try{
+    const r=await apiFetch("/api/chats"); const d=await r.json(); if(!r.ok) return;
+    if(Array.isArray(d.chats) && d.chats.length){
+      state.chats=d.chats.map(x=>({id:String(x.id),remoteId:String(x.id),title:x.title||"Nova conversa",messages:(x.messages||[]).filter(m=>m.role==="user"||m.role==="assistant").map(m=>({role:m.role,content:String(m.content||"")}))}));
+      state.active=state.chats[0].id; save(); render();
+    }
+  }catch(e){ console.warn("Aethel sync:",e); }
+}
+async function initAuth(){
+  try{
+    const r=await apiFetch("/api/auth/me"); const d=await r.json(); authState.online=true;
+    if(d.authenticated){ authState.user=d.user; updateAccountUI(); await loadRemoteChats(); }
+    else updateAccountUI();
+  }catch(_){ authState.online=false; updateAccountUI(); }
+}
+$("#accountBtn")?.addEventListener("click",()=>authView(authState.user?"account":"login"));
+$("#closeAuth")?.addEventListener("click",()=>$("#authModal").classList.remove("open"));
+$("#authModal")?.addEventListener("click",e=>{if(e.target.id==="authModal")e.currentTarget.classList.remove("open")});
+$("#loginTab")?.addEventListener("click",()=>setAuthMode("login"));
+$("#registerTab")?.addEventListener("click",()=>setAuthMode("register"));
+$("#guestContinue")?.addEventListener("click",()=>$("#authModal").classList.remove("open"));
+$("#loginForm")?.addEventListener("submit",async e=>{
+  e.preventDefault(); $("#loginError").textContent="";
+  try{const r=await apiFetch("/api/auth/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("#loginEmail").value,password:$("#loginPassword").value})});const d=await r.json();if(!r.ok) throw new Error(d.error||"Não foi possível entrar.");if(d.sessionToken)setAuthToken(d.sessionToken);authState.user=d.user;updateAccountUI();$("#authModal").classList.remove("open");await loadRemoteChats();toast("Conta conectada ao banco Aethel.");}catch(err){$("#loginError").textContent=err.message||"Erro ao entrar.";}});
+$("#registerForm")?.addEventListener("submit",async e=>{
+  e.preventDefault(); $("#registerError").textContent="";
+  try{const r=await apiFetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:$("#registerName").value,email:$("#registerEmail").value,password:$("#registerPassword").value})});const d=await r.json();if(!r.ok) throw new Error(d.error||"Não foi possível criar a conta.");if(d.sessionToken)setAuthToken(d.sessionToken);authState.user=d.user;updateAccountUI();$("#authModal").classList.remove("open");toast("Conta criada. Seus dados agora ficam no banco local.");}catch(err){$("#registerError").textContent=err.message||"Erro ao criar conta.";}});
+$("#logoutBtn")?.addEventListener("click",async()=>{try{await apiFetch("/api/auth/logout",{method:"POST"})}catch(_){}setAuthToken("");authState.user=null;updateAccountUI();$("#authModal").classList.remove("open");toast("Você saiu da conta.");});
+
+const AETHEL_BILLING = { basic: null, pro: null, enterprise: null };
+let serverOnline=false;
+async function waitForAethelServer(attempts=4){
+  for(let i=0;i<attempts;i++){
+    try{
+      const r=await fetch(API_BASE+"/health",{cache:"no-store"});
+      if(r.ok){ serverOnline=true; return await r.json(); }
+    }catch(_){}
+    await new Promise(res=>setTimeout(res,500*(i+1)));
+  }
+  serverOnline=false;
+  return null;
+}
+
+async function checkAethelServer(){
+  try{
+    const d=await waitForAethelServer(2);
+    if(!d) throw new Error("backend offline");
+    const status=$(".status");
+    if(status){ const model=d?.llm?.model; status.innerHTML='<span class="dot"></span> '+(model?('Aethel • '+escapeHTML(model)):'Aethel Local'); }
+    return d;
+  }catch(_){
+    const status=$(".status");
+    if(status) status.innerHTML='<span class="dot" style="background:#ff9f0a"></span> Browser Brain';
+    return null;
+  }
+}
+setInterval(()=>{ checkAethelServer(); },5000);
+
+// Offline mode is intentionally small: it never pretends to be a full LLM.
+function browserBrain(text){
+  const q=String(text||'').trim(), lower=q.toLowerCase();
+  if(['oi','olá','ola','hey','hello','hi','bom dia','boa tarde','boa noite'].includes(lower)) return 'Oi! 👋 O Aethel está online. Para respostas gerais complexas, ligue o servidor local com um modelo de linguagem configurado.';
+  const m=q.match(/^(?:quanto é|quanto e|calcule|calcular|resultado de)?\s*([0-9+\-*/().\s^%]+)\??$/i);
+  if(m){ try{ const expr=m[1].replace(/\^/g,'**'); if(/^[0-9+\-*/().\s*%]+$/.test(expr)){ const value=Function('"use strict";return ('+expr+')')(); if(Number.isFinite(value)) return 'Resultado: '+String(value); } }catch(_){} }
+  return 'Estou em modo de contingência porque o servidor local do Aethel não respondeu em 127.0.0.1:5000. Para usar o cérebro local e criar projetos com o backend, inicie o Aethel pelo arquivo start_aethel.py (ou run_aethel.bat/run_aethel.sh) e abra http://127.0.0.1:5000/. O navegador sozinho não consegue iniciar o Python.';
+}
+async function generateResponse(fromVoice=false){
+  const c=current(); if(!c||state.generating)return; const last=c.messages[c.messages.length-1]; if(!last||last.role!=='user')return;
+  state.generating=true; $('#composer')?.classList.add('thinking'); const msg={role:'assistant',content:'',thinking:true}; c.messages.push(msg); render();
+  try{
+    const history=c.messages.slice(0,-1).slice(-24);
+    const r=await fetch(API_BASE+'/api/chat/stream',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({message:last.content,history,modelMode:state.model,temperature:state.settings.temperature,conversationId:c.remoteId||null,images:state.attachments.map(x=>x.data),webSearch:state.web})});
+    if(!r.ok) throw new Error('Servidor HTTP '+r.status);
+    const reader=r.body.getReader(), dec=new TextDecoder(); let buf=''; const bubble=()=>$('#messages')?.querySelector('.msg.ai:last-child .bubble-content'); msg.thinking=false;
+    while(true){const x=await reader.read(); if(x.done)break; buf+=dec.decode(x.value,{stream:true}); const parts=buf.split('\n\n'); buf=parts.pop()||'';
+      for(const part of parts){const line=part.split('\n').find(v=>v.startsWith('data:')); if(!line)continue; let d; try{d=JSON.parse(line.slice(5).trim())}catch(_){continue}
+        if(d.type==='search'){toast("Pesquisa web concluída: "+(d.results?.length||0)+" resultados");} if(d.type==='token'){msg.content+=String(d.text||''); const el=bubble(); if(el)el.innerHTML=renderMarkdown(msg.content)}
+        if(d.type==='done'&&d.conversationId)c.remoteId=String(d.conversationId);
+        if(d.type==='error'){ const detail=d.error||'Falha no LLM local'; throw new Error(detail); }
+      }
+    }
+    if(!msg.content)throw new Error('Resposta vazia.');
+  }catch(err){console.error('Aethel stream:',err); msg.content='Não consegui gerar a resposta porque o modelo local ainda não está pronto.\n\nAbra **Status** no topo: se aparecer “preparando modelo”, o Ollama ainda está baixando/carregando o modelo. Assim que aparecer “Aethel • nome-do-modelo”, envie novamente.\n\nDetalhe técnico: '+String(err?.message||'erro desconhecido'); msg.thinking=false; render();}
+  finally{msg.thinking=false; state.generating=false; $('#composer')?.classList.remove('thinking'); save(); if(fromVoice&&msg.content)speakText(msg.content); checkAethelServer();}
+}
+
+/* Chat management */
+$("#newChat").onclick=()=>{const c={id:uid(),title:"New chat",messages:[]};state.chats.push(c);state.active=c.id;save();render();$("#input").focus()};
+$("#send").onclick=send;$("#input").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}});
+function autoSize(){const x=$("#input");x.style.height="auto";x.style.height=Math.min(x.scrollHeight,160)+"px"}$("#input").addEventListener("input",autoSize);
+$("#attach").onclick=()=>$("#file").click();
+$("#file").onchange=async e=>{
+  const files=[...e.target.files].filter(f=>f.type.startsWith("image/")).slice(0,4);
+  state.attachments=[];
+  for(const file of files){
+    if(file.size>5*1024*1024) continue;
+    const data=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result));r.onerror=reject;r.readAsDataURL(file)});
+    state.attachments.push({name:file.name,data});
+  }
+  $("#attachmentLabel").textContent=state.attachments.length?"👁️ "+state.attachments.length+" imagem(ns)":"";
+};
+$("#web").onclick=()=>{
+  state.web=!state.web;
+  $("#web").classList.toggle("active",state.web);
+  $("#web").setAttribute("aria-pressed",String(state.web));
+};
+let activeRecognition=null;
+let voiceMode=false;
+let voiceFinalText="";
+let toastTimer=null;
+function toast(message){const el=$("#aethelToast");if(!el)return;el.textContent=String(message||"");el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),3200)}
+$("#plansBtn")?.addEventListener("click",()=>openWorkspace("pricingModal"));
+let pricingAnnual=false;
+function renderPricing(){
+  document.querySelectorAll(".plan-card[data-monthly]").forEach(card=>{
+    const monthly=card.dataset.monthly, yearly=card.dataset.yearly, value=card.querySelector(".price-value"), unit=card.querySelector(".plan-price span:last-child");
+    if(!value) return;
+    if(monthly==="custom"){value.textContent="Sob consulta"; if(unit) unit.textContent=""; return;}
+    if(pricingAnnual){
+      value.textContent=yearly==="0"?"R$ 0":"R$ "+Number(yearly).toFixed(2).replace(".",",");
+      if(unit) unit.textContent=yearly==="0"?"":"/ ano";
+    }else{
+      value.textContent=monthly==="0"?"R$ 0":"R$ "+Number(monthly).toFixed(2).replace(".",",");
+      if(unit) unit.textContent="/ mês";
+    }
+  });
+  $("#billingToggle")?.classList.toggle("active",pricingAnnual);
+}
+$("#billingToggle")?.addEventListener("click",()=>{pricingAnnual=!pricingAnnual;renderPricing()});
+$("#landingPricingBtn")?.addEventListener("click",()=>openWorkspace("pricingModal"));
+renderPricing();
+window.addEventListener("click",e=>{const close=e.target.closest?.("[data-close]");if(close)closeWorkspace(close.dataset.close);});
+async function startCheckout(plan){
+  if(plan==='enterprise'){toast('Enterprise: entre em contato com vendas pelo canal configurado no servidor.');return;}
+  const url=AETHEL_BILLING[plan];
+  if(url){window.open(url,'_blank','noopener,noreferrer');return;}
+  try{const r=await fetch(API_BASE+"/api/billing/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({plan})});const d=await r.json();if(d.url){window.location.href=d.url;return}toast(d.error||'Checkout ainda não configurado.');}catch(_){toast('Checkout indisponível. Configure a cobrança no servidor.')}}
+document.querySelectorAll('[data-plan]').forEach(b=>b.addEventListener('click',()=>startCheckout(b.dataset.plan)));
+$("#privacyBtn")?.addEventListener("click",()=>toast('Privacidade: configure sua política publicada antes do lançamento.'));
+$("#termsBtn")?.addEventListener("click",()=>toast('Termos: configure os Termos de Uso antes do lançamento.'));
+$("#statusBtn")?.addEventListener("click",async()=>{try{const r=await fetch(API_BASE+'/health');const d=await r.json();toast(d.ok?'Aethel online.':'Aethel com problemas.')}catch(_){toast('Servidor offline.')}});
+function getPortugueseVoice(){if(typeof speechSynthesis==="undefined")return null;const voices=speechSynthesis.getVoices?.()||[];return voices.find(v=>/^pt-BR$/i.test(v.lang))||voices.find(v=>/^pt/i.test(v.lang))||null}
+function speakText(text){const value=String(text||"").trim();if(!value)return false;if(typeof speechSynthesis==="undefined"){toast("A leitura em voz alta não é suportada neste navegador.");return false}try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(value);u.lang="pt-BR";u.rate=1;u.pitch=1;const voice=getPortugueseVoice();if(voice)u.voice=voice;speechSynthesis.speak(u);return true}catch(err){console.error("Aethel TTS:",err);toast("Não foi possível iniciar a voz.");return false}}
+window.speechSynthesis?.addEventListener?.("voiceschanged",()=>getPortugueseVoice());
+function stopVoiceRecognition(){voiceMode=false;try{activeRecognition?.stop()}catch(_){}activeRecognition=null;$("#voice")?.classList.remove("active");$("#voice")?.setAttribute("aria-label","Entrada de voz")}
+async function startVoiceRecognition(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){toast("O Chrome deste dispositivo não oferece reconhecimento de voz nesta página.");return}if(state.generating){toast("Aguarde a resposta terminar antes de falar.");return}if(activeRecognition){stopVoiceRecognition();return}if(navigator.mediaDevices?.getUserMedia){try{const stream=await navigator.mediaDevices.getUserMedia({audio:true});stream.getTracks().forEach(t=>t.stop())}catch(err){console.warn("Microphone permission:",err);toast("Microfone não autorizado. Permita o microfone para usar a entrada de voz.");return}}const r=new R();activeRecognition=r;voiceMode=true;voiceFinalText="";r.lang="pt-BR";r.continuous=false;r.interimResults=true;r.maxAlternatives=1;const btn=$("#voice");btn?.classList.add("active");btn?.setAttribute("aria-label","Parar entrada de voz");toast("Aethel está ouvindo… fale agora.");r.onresult=e=>{let interim="";for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0]?.transcript||"";if(e.results[i].isFinal)voiceFinalText+=part;else interim+=part}const combined=(voiceFinalText+interim).trim();if(combined){$("#input").value=combined;autoSize()}};r.onerror=e=>{console.warn("Speech recognition:",e.error);if(e.error!=="aborted")toast(e.error==="not-allowed"?"Permita o microfone nas configurações do Chrome.":"Não foi possível reconhecer a voz.")};r.onend=()=>{const text=voiceFinalText.trim();activeRecognition=null;btn?.classList.remove("active");btn?.setAttribute("aria-label","Entrada de voz");const shouldSend=voiceMode&&text&&!state.generating;voiceMode=false;if(shouldSend){$("#input").value=text;autoSize();send(true)}};try{r.start()}catch(err){console.error("Speech recognition start:",err);stopVoiceRecognition();toast("Não foi possível iniciar a entrada de voz.")}}
+$("#voice").onclick=startVoiceRecognition;
+$("#sidebarBtn").onclick=()=>{if(innerWidth<=760)$("#app").classList.toggle("sidebar-open");else $("#app").classList.toggle("collapsed")};
+
+/* V14: single visible model selector. */
+
+/* V12 workspace: image brain, library, projects and scheduled items */
+const LS_IMAGES="aethel_library_images", LS_PROJECTS="aethel_projects", LS_SCHEDULES="aethel_schedules";
+const readArr=(k)=>{try{const v=JSON.parse(localStorage.getItem(k)||"[]");return Array.isArray(v)?v:[]}catch(_){return[]}};
+function openWorkspace(id){$("#"+id)?.classList.add("open"); if(id==='libraryModal') renderLibrary(); if(id==='projectsModal') renderProjects(); if(id==='scheduledModal') renderSchedules();}
+function closeWorkspace(id){$("#"+id)?.classList.remove("open")}
+document.querySelectorAll('.close-workspace').forEach(b=>b.onclick=()=>closeWorkspace(b.dataset.close));
+["imageModal","libraryModal","projectsModal","scheduledModal"].forEach(id=>$("#"+id)?.addEventListener('click',e=>{if(e.target.id===id)closeWorkspace(id)}));
+$("#createImage").onclick=()=>openWorkspace('imageModal');
+$("#openLibrary").onclick=()=>openWorkspace('libraryModal');
+$("#openProjects").onclick=()=>openWorkspace('projectsModal');
+const agentOpen=document.createElement('button'); agentOpen.className='side-action'; agentOpen.textContent='Agent'; agentOpen.onclick=()=>openWorkspace('agentModal'); document.querySelector('.side-bottom')?.appendChild(agentOpen);
+$('#runAgent')?.addEventListener('click',async()=>{const goal=$('#agentGoal').value.trim(); if(!goal)return; $('#agentResult').textContent='Executando…'; try{const r=await fetch('/api/agent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({goal})}); const d=await r.json(); $('#agentResult').textContent=d.ok?('✓ Projeto criado: '+d.project+'\n\nArquivos: '+d.files.join(', ')+'\n\nTestes: '+JSON.stringify(d.checks,null,2)+'\n\nDownload: '+d.download):(d.error||'Erro');}catch(e){$('#agentResult').textContent='Erro: '+e.message;}});
+$("#openScheduled").onclick=()=>openWorkspace('scheduledModal');
+function renderLibrary(){const list=$("#libraryList"), items=readArr(LS_IMAGES); list.innerHTML=items.length?items.map((x,i)=>`<div class="workspace-item"><strong>${escapeHTML(x.prompt)}</strong><small>${escapeHTML(x.style)} • ${escapeHTML(x.aspect)}</small><div class="artifact-actions"><button onclick="downloadSvg(${i})">Baixar</button><button onclick="deleteImage(${i})">Excluir</button></div></div>`).join(''):'<div class="workspace-item"><small>Nenhuma imagem salva ainda.</small></div>';}
+window.downloadSvg=i=>{const x=readArr(LS_IMAGES)[i];if(!x)return;const a=document.createElement('a');a.href=x.imageBase64?`data:image/png;base64,${x.imageBase64}`:URL.createObjectURL(new Blob([x.svg||''],{type:'image/svg+xml'}));a.download=x.imageBase64?'aethel-image.png':'aethel-image.svg';a.click();if(!x.imageBase64)setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+window.deleteImage=i=>{const a=readArr(LS_IMAGES);a.splice(i,1);localStorage.setItem(LS_IMAGES,JSON.stringify(a));renderLibrary()};
+function svgEscape(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&apos;"}[ch]))}
+function localVision(prompt,style,aspect){const sizes={"1:1":[1024,1024],"3:2":[1200,800],"2:3":[800,1200]};const [w,h]=sizes[aspect]||sizes["1:1"];const palette={cinematic:["#050506","#1b1b22","#ffffff"],editorial:["#f2f2f0","#17171a","#d7d7da"],minimal:["#0b0b0c","#24242a","#f4f4f5"],futuristic:["#050816","#16213c","#77d9ff"]}[style]||["#050506","#1b1b22","#ffffff"];const safe=svgEscape(String(prompt||"").slice(0,150)||"Aethel Vision"),cx=w/2,cy=h/2;const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><radialGradient id="bg" cx="50%" cy="45%"><stop offset="0" stop-color="${palette[1]}"/><stop offset="1" stop-color="${palette[0]}"/></radialGradient><linearGradient id="obj"><stop stop-color="${palette[2]}" stop-opacity=".9"/><stop offset=".5" stop-color="#777" stop-opacity=".35"/><stop offset="1" stop-color="${palette[2]}" stop-opacity=".72"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#bg)"/><ellipse cx="${cx}" cy="${cy+150}" rx="${Math.round(w*.24)}" ry="${Math.round(h*.035)}" fill="#000" opacity=".55"/><g transform="translate(${cx-120} ${cy-260}) rotate(-7 120 260)"><rect width="240" height="520" rx="80" fill="url(#obj)" stroke="#fff" stroke-opacity=".18" stroke-width="3"/><ellipse cx="120" cy="25" rx="72" ry="18" fill="#aaa" opacity=".55"/><text x="120" y="275" text-anchor="middle" fill="#fff" font-family="Arial" font-size="28" font-weight="700">AETHEL</text></g><text x="${cx}" y="${h-74}" text-anchor="middle" fill="#fff" opacity=".78" font-family="Arial" font-size="${Math.max(18,Math.round(w/52))}">${safe}</text><text x="${cx}" y="${h-38}" text-anchor="middle" fill="#fff" opacity=".38" font-family="Arial" font-size="14">AETHEL VISION • LOCAL GENERATOR</text></svg>`;return {prompt:String(prompt||""),style,aspect,svg,created:Date.now(),engine:"Aethel Vision Local"}}
+$("#generateImage").onclick=async()=>{const prompt=$("#imagePrompt").value.trim();if(!prompt){toast("Descreva a imagem primeiro.");return}const btn=$("#generateImage");btn.disabled=true;btn.textContent="Gerando…";try{const payload={prompt,style:$("#imageStyle").value,aspect:$("#imageAspect").value};let d=null;try{
+  const r=await fetch(API_BASE+"/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const candidate=await r.json().catch(()=>({}));
+  if(!r.ok) throw new Error(candidate.error||`Falha no gerador local (HTTP ${r.status})`);
+  if(!candidate.imageBase64 && !candidate.svg) throw new Error("O servidor respondeu sem uma imagem válida.");
+  d=candidate;
+}catch(err){
+  // One short retry helps when the Python server has just started/restarted.
+  await new Promise(r=>setTimeout(r,500));
+  const r2=await fetch(API_BASE+"/api/image",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  const candidate2=await r2.json().catch(()=>({}));
+  if(!r2.ok || (!candidate2.imageBase64 && !candidate2.svg)) throw new Error(candidate2.error||err?.message||`Falha no gerador local (HTTP ${r2.status})`);
+  d=candidate2;
+}
+const items=readArr(LS_IMAGES);items.unshift(d);localStorage.setItem(LS_IMAGES,JSON.stringify(items.slice(0,30)));const src=d.imageBase64?`data:image/png;base64,${d.imageBase64}`:`data:image/svg+xml;charset=utf-8,${encodeURIComponent(d.svg||'')}`;$("#imageResult").innerHTML=`<div class="artifact-card"><img alt="Imagem criada pelo Aethel Vision" src="${src}"><div class="artifact-actions"><small style="opacity:.65">${escapeHTML(d.engine||"Aethel Vision")}</small><button id="saveImageClose">Salvar na biblioteca</button><button id="downloadNow">Baixar imagem</button></div></div>`;$("#saveImageClose").onclick=()=>{openWorkspace("libraryModal");closeWorkspace("imageModal")};$("#downloadNow").onclick=()=>{const a=document.createElement("a");a.href=src;a.download=d.imageBase64?"aethel-image.png":"aethel-image.svg";a.click()}}catch(e){console.error("Aethel Vision:",e);$("#imageResult").innerHTML=`<div class="workspace-item"><strong>Erro ao gerar</strong><small>${escapeHTML(e?.message||'erro desconhecido')}</small></div>`}finally{btn.disabled=false;btn.textContent="Gerar imagem"}};
+function renderProjects(){const list=$("#projectList"), items=readArr(LS_PROJECTS);list.innerHTML=items.length?items.map((x,i)=>`<div class="workspace-item"><strong>${escapeHTML(x.name)}</strong><small>Criado ${new Date(x.created).toLocaleString()}</small><div class="artifact-actions"><button onclick="deleteProject(${i})">Excluir</button></div></div>`).join(''):'<div class="workspace-item"><small>Nenhum projeto criado.</small></div>'}
+window.deleteProject=i=>{const a=readArr(LS_PROJECTS);a.splice(i,1);localStorage.setItem(LS_PROJECTS,JSON.stringify(a));renderProjects()};
+$("#addProject").onclick=()=>{const name=$("#projectName").value.trim();if(!name)return;const a=readArr(LS_PROJECTS);a.unshift({name,created:Date.now()});localStorage.setItem(LS_PROJECTS,JSON.stringify(a));$("#projectName").value='';renderProjects()};
+function renderSchedules(){const list=$("#scheduleList"),items=readArr(LS_SCHEDULES);list.innerHTML=items.length?items.map((x,i)=>`<div class="workspace-item"><strong>${escapeHTML(x.text)}</strong><small>${new Date(x.when).toLocaleString()} ${x.done?'• concluído':''}</small><div class="artifact-actions"><button onclick="deleteSchedule(${i})">Excluir</button></div></div>`).join(''):'<div class="workspace-item"><small>Nenhum item agendado.</small></div>'}
+window.deleteSchedule=i=>{const a=readArr(LS_SCHEDULES);a.splice(i,1);localStorage.setItem(LS_SCHEDULES,JSON.stringify(a));renderSchedules()};
+$("#addSchedule").onclick=()=>{if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();const text=$("#scheduleText").value.trim(),when=$("#scheduleWhen").value;if(!text||!when)return;const a=readArr(LS_SCHEDULES);a.unshift({text,when:new Date(when).toISOString(),done:false});localStorage.setItem(LS_SCHEDULES,JSON.stringify(a));$("#scheduleText").value='';$("#scheduleWhen").value='';renderSchedules()};
+setInterval(()=>{const a=readArr(LS_SCHEDULES);let changed=false;for(const x of a){if(!x.done&&Date.now()>=new Date(x.when).getTime()){x.done=true;changed=true;if('Notification' in window&&Notification.permission==='granted')new Notification('Aethel', {body:x.text});}}if(changed){localStorage.setItem(LS_SCHEDULES,JSON.stringify(a));if($("#scheduledModal")?.classList.contains('open'))renderSchedules()}},5000);
+
+/* Settings */
+function applyTheme(){document.documentElement.classList.toggle("dark",state.settings.dark);$("#themeToggle")?.classList.toggle("on",state.settings.dark)}
+$("#settingsBtn").onclick=()=>{$("#modalBackdrop").classList.add("open");$("#systemPrompt").value=state.settings.systemPrompt;$("#temp").value=state.settings.temperature;$("#tempValue").textContent=state.settings.temperature;applyTheme()};
+$("#closeModal").onclick=()=>$("#modalBackdrop").classList.remove("open");
+$("#modalBackdrop").onclick=e=>{if(e.target.id==="modalBackdrop")e.currentTarget.classList.remove("open")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#modalBackdrop")?.classList.remove("open")});
+$("#temp").oninput=e=>{state.settings.temperature=+e.target.value;$("#tempValue").textContent=e.target.value;save()};
+$("#systemPrompt").oninput=e=>{state.settings.systemPrompt=e.target.value;save()};
+$("#themeToggle").onclick=()=>{state.settings.dark=!state.settings.dark;applyTheme();save()};
+$("#themeBtn").onclick=()=>{
+  state.settings.dark=!state.settings.dark;
+  applyTheme();
+  save();
+};
+$("#modalExport").onclick=exportChat;$("#exportBtn").onclick=exportChat;
+function exportChat(){
+  const chat=current();
+  if(!chat) return;
+  const blob=new Blob([JSON.stringify(chat,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  const url=URL.createObjectURL(blob);
+  a.href=url;
+  a.download=(chat.title||"aethel-chat").replace(/[^a-z0-9-_]+/gi,"-")+".json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* Drag/drop */
+["dragenter","dragover"].forEach(e=>$("#composer").addEventListener(e,x=>{x.preventDefault();$("#composer").classList.add("drag")}));
+["dragleave","drop"].forEach(type=>$("#composer").addEventListener(type,e=>{
+  e.preventDefault();
+  if(type==="drop" && e.dataTransfer.files.length){
+    try{
+      const dt=new DataTransfer();
+      [...e.dataTransfer.files].forEach(file=>dt.items.add(file));
+      $("#file").files=dt.files;
+    }catch(_){}
+    $("#attachmentLabel").textContent=e.dataTransfer.files.length+" arquivo(s) — selecione imagens para Vision";
+  }
+  $("#composer").classList.remove("drag");
+}));
+
+/* ============================================================
+   WebGL fluid aura + 3,200 particles.
+   Shader math is intentionally inexpensive: a few sine waves
+   plus mouse influence. Particle positions are updated on CPU
+   with lerped attraction; rendering remains a single draw call.
+   ============================================================ */
+let renderer,scene,camera,particles,mouse={x:0,y:0},targetMouse={x:0,y:0},clock;
+function initWebGL(){
+  // WebGL is decorative. If Three.js or WebGL is unavailable, the UI must still work.
+  try{
+    if(!window.THREE) return;
+    const canvas=$("#webgl");
+    const gl=canvas.getContext("webgl2") || canvas.getContext("webgl");
+    if(!gl) return;
+
+    renderer=new THREE.WebGLRenderer({
+      canvas,alpha:true,antialias:false,powerPreference:"high-performance"
+    });
+    renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+    renderer.setSize(Math.max(1,innerWidth),Math.max(1,innerHeight),false);
+
+    scene=new THREE.Scene();
+    camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+    clock=new THREE.Clock();
+
+    const count=3200,pos=new Float32Array(count*3);
+    for(let i=0;i<count;i++){
+      pos[i*3]=(Math.random()-.5)*2.7;
+      pos[i*3+1]=(Math.random()-.5)*2;
+      pos[i*3+2]=(Math.random()-.5)*.4;
+    }
+
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute("position",new THREE.BufferAttribute(pos,3));
+
+    const mat=new THREE.ShaderMaterial({
+      transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+      uniforms:{uTime:{value:0},uMouse:{value:new THREE.Vector2()}},
+      vertexShader:`uniform float uTime;uniform vec2 uMouse;
+        void main(){
+          vec3 p=position;
+          float d=distance(p.xy,uMouse*1.2);
+          vec2 delta=p.xy-uMouse*.9;
+          float deltaLen=max(length(delta),0.0001);
+          p.xy+=(delta/deltaLen)*0.015/(d+.25);
+          p.y+=sin(uTime*.25+p.x*2.0)*.012;
+          gl_Position=vec4(p.xy,0.,1.);
+          gl_PointSize=1.2+1.5/(d+1.);
+        }`,
+      fragmentShader:`uniform float uTime;
+        void main(){
+          float d=length(gl_PointCoord-.5);
+          if(d>.5)discard;
+          float glow=smoothstep(.5,0.,d);
+          vec3 c=mix(vec3(.25,.45,1.),vec3(1.,.35,.75),sin(uTime*.35)*.5+.5);
+          gl_FragColor=vec4(c,glow*.24);
+        }`
+    });
+
+    particles=new THREE.Points(geo,mat);
+    scene.add(particles);
+
+    addEventListener("pointermove",e=>{
+      targetMouse.x=e.clientX/innerWidth*2-1;
+      targetMouse.y=-(e.clientY/innerHeight*2-1);
+    });
+
+    addEventListener("resize",()=>{
+      if(renderer){
+        renderer.setSize(Math.max(1,innerWidth),Math.max(1,innerHeight),false);
+        renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+      }
+    });
+
+    function frame(){
+      requestAnimationFrame(frame);
+      if(!renderer || !mat) return;
+      const t=clock.getElapsedTime();
+      mouse.x+=(targetMouse.x-mouse.x)*.07;
+      mouse.y+=(targetMouse.y-mouse.y)*.07;
+      mat.uniforms.uTime.value=t;
+      mat.uniforms.uMouse.value.set(mouse.x,mouse.y);
+      renderer.render(scene,camera);
+    }
+    frame();
+  }catch(err){
+    console.warn("Decorative WebGL disabled:",err);
+    try{ $("#webgl").style.display="none"; }catch(_){}
+  }
+}
+// Start the application even when optional CDNs fail.
+try{initWebGL()}catch(e){console.warn(e)}
+applyTheme();
+render();
+checkAethelServer();
+initAuth();
+setInterval(checkAethelServer, 10000);
+if(window.lucide?.createIcons) lucide.createIcons();
+
+if(window.gsap){
+  try{
+    gsap.from(".topbar,.composer-wrap",{
+      opacity:0,y:12,duration:.8,stagger:.08,ease:"power3.out"
+    });
+  }catch(e){console.warn(e)}
+}
+
+// Landing page / workspace switcher.
+function openAethelApp(){
+  const home=$("#home"), shell=$("#appShell");
+  if(!home||!shell)return;
+  home.classList.add("home-reveal");
+  setTimeout(()=>{
+    home.classList.add("hidden");
+    shell.classList.add("active");
+    document.body.style.overflow="hidden";
+    history.replaceState(null,"","#app");
+    window.scrollTo(0,0);
+    document.querySelector("#input")?.focus({preventScroll:true});
+  },260);
+}
+function openAethelHome(){
+  $("#appShell").classList.remove("active");$("#home").classList.remove("hidden","home-reveal");document.body.style.overflowX="hidden";document.body.style.overflowY="auto";history.replaceState(null,"","#home");window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-open-app]").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();openAethelApp()}));
+$("#homeMenu")?.addEventListener("click",openAethelApp);$("#homeBtn")?.addEventListener("click",openAethelHome);
+// Brand returns to the landing page from the workspace.
+document.querySelector(".brand")?.addEventListener("dblclick",openAethelHome);
+if(location.hash==="#app") openAethelApp(); else openAethelHome();
+
+// Critical safety net: the decorative libraries must never control app startup.
+function dismissPreloader(){
+  const loader=$("#preloader");
+  if(!loader) return;
+  loader.style.opacity="0";
+  setTimeout(()=>loader.remove(),700);
+}
+requestAnimationFrame(()=>setTimeout(dismissPreloader,150));
+setTimeout(dismissPreloader,1800);
+</script>
+
+<div class="modal-backdrop workspace-modal" id="motionModal"><div class="modal" style="width:min(1100px,100%);height:86vh"><div class="modal-head"><div><h2>Aethel Motion Studio</h2><small style="color:var(--muted)">Preview em tempo real • 2D • 3D • Motion Graphics • imagem animada</small></div><button class="icon-btn" id="closeMotion"><i data-lucide="x"></i></button></div><div style="display:grid;grid-template-columns:330px 1fr;gap:14px;height:calc(100% - 70px)"><div><textarea id="motionPrompt" style="width:100%;height:150px" placeholder="Crie uma intro cinematográfica de uma marca futurista, com logo surgindo em partículas e câmera 3D..."></textarea><input id="motionImage" type="file" accept="image/*" style="margin-top:10px;width:100%"><button class="model-pill" id="runMotion" style="margin-top:10px">Criar animação</button><a id="motionDownload" class="model-pill" style="display:block;margin-top:10px;text-align:center;display:none">Baixar projeto</a><pre id="motionStatus" style="white-space:pre-wrap;color:#aaa"></pre></div><iframe id="motionPreview" title="Motion preview" style="width:100%;height:100%;border:1px solid var(--line);border-radius:18px;background:#000"></iframe></div></div></div>
+<div class="modal-backdrop" id="authModal"><div class="modal auth-modal">
+  <div class="modal-head"><div class="auth-brand"><img src="aethel-logo.png" alt="Aethel"><div><h2 id="authTitle">Entrar no Aethel</h2><span style="font-size:12px;color:var(--muted)">Sua conta fica no banco de dados do próprio Aethel.</span></div></div><button class="icon-btn" id="closeAuth"><i data-lucide="x"></i></button></div>
+  <div id="authForms" class="auth-card">
+    <div class="auth-tabs"><button type="button" id="loginTab" class="active">Entrar</button><button type="button" id="registerTab">Criar conta</button></div>
+    <form id="loginForm" class="auth-form">
+      <div class="auth-field"><label>Email</label><input id="loginEmail" type="email" autocomplete="email" placeholder="voce@exemplo.com" required></div>
+      <div class="auth-field"><label>Senha</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="Sua senha" required></div>
+      <div class="auth-error" id="loginError"></div><button class="auth-primary" type="submit">Entrar</button>
+    </form>
+    <form id="registerForm" class="auth-form" style="display:none">
+      <div class="auth-field"><label>Nome</label><input id="registerName" autocomplete="name" placeholder="Seu nome" required></div>
+      <div class="auth-field"><label>Email</label><input id="registerEmail" type="email" autocomplete="email" placeholder="voce@exemplo.com" required></div>
+      <div class="auth-field"><label>Senha</label><input id="registerPassword" type="password" autocomplete="new-password" placeholder="Mínimo de 10 caracteres" minlength="10" required></div>
+      <div class="auth-error" id="registerError"></div><button class="auth-primary" type="submit">Criar conta</button>
+    </form>
+    <button class="auth-secondary" id="guestContinue" type="button">Continuar como visitante</button>
+  </div>
+  <div id="accountPanel" class="account-panel" style="display:none">
+    <div class="account-meta"><strong id="accountName">Aethel User</strong><small id="accountEmail">—</small><span class="plan-chip" id="accountPlan">Free</span></div>
+    <button class="auth-primary" id="logoutBtn" type="button">Sair da conta</button>
+  </div>
+</div></div>
+<div class="modal-backdrop workspace-modal" id="pricingModal"><div class="modal pricing-modal">
+  <div class="modal-head"><div><div class="publish-badge"><i></i> Aethel plans</div></div><button class="icon-btn" data-close="pricingModal"><i data-lucide="x"></i></button></div>
+  <div class="pricing-hero">
+    <div class="pricing-eyebrow"><span class="live-dot"></span> Escolha como você quer criar</div>
+    <h2>Um cérebro. Quatro formas de usar.</h2>
+    <p>Comece gratuitamente e aumente seus recursos quando seus projetos crescerem. O Aethel combina conversa, código, visão, imagens e agentes em um único workspace.</p>
+    <div class="billing-switch"><span class="billing-label">Mensal</span><button class="billing-toggle" id="billingToggle" type="button" aria-label="Alternar cobrança anual"></button><span class="billing-label">Anual</span><span class="save-badge">economize 20%</span></div>
+  </div>
+  <div class="pricing-grid">
+    <div class="plan-card" data-monthly="0" data-yearly="0">
+      <div class="plan-icon"><i data-lucide="sparkles" width="18"></i></div><h3>Free</h3><p class="plan-description">Para conhecer o Aethel e testar suas ideias.</p>
+      <div class="plan-price"><span class="price-value">R$ 0</span> <span>/ mês</span></div><div class="plan-yearly">Sempre gratuito</div>
+      <ul class="plan-features"><li><span class="feature-check">✓</span>50 mensagens por dia</li><li><span class="feature-check">✓</span>5 gerações de imagem por dia</li><li><span class="feature-check">✓</span>1 projeto ativo</li><li><span class="feature-check">✓</span>Chat e ferramentas essenciais</li><li><span class="feature-x">×</span><span class="feature-off">Recursos avançados de agente</span></li></ul>
+      <button class="plan-cta" data-plan="free">Começar grátis</button>
+    </div>
+    <div class="plan-card" data-monthly="19.90" data-yearly="191.04">
+      <div class="plan-icon"><i data-lucide="wand-sparkles" width="18"></i></div><h3>Creator</h3><p class="plan-description">Para quem transforma ideias em sites, apps e conteúdo.</p>
+      <div class="plan-price"><span class="price-value">R$ 19,90</span> <span>/ mês</span></div><div class="plan-yearly">ou R$ 191,04 / ano</div>
+      <ul class="plan-features"><li><span class="feature-check">✓</span>2.000 mensagens por mês</li><li><span class="feature-check">✓</span>100 imagens por mês</li><li><span class="feature-check">✓</span>10 projetos</li><li><span class="feature-check">✓</span>Voz, biblioteca e workspace</li><li><span class="feature-check">✓</span>Modelos Aethel disponíveis</li></ul>
+      <button class="plan-cta" data-plan="basic">Começar Creator</button>
+    </div>
+    <div class="plan-card featured" data-monthly="49.90" data-yearly="479.04">
+      <div class="plan-badge">Mais completo</div><div class="plan-icon"><i data-lucide="orbit" width="18"></i></div><h3>Pro</h3><p class="plan-description">Para criadores avançados, desenvolvedores e profissionais.</p>
+      <div class="plan-price"><span class="price-value">R$ 49,90</span> <span>/ mês</span></div><div class="plan-yearly">ou R$ 479,04 / ano</div>
+      <ul class="plan-features"><li><span class="feature-check">✓</span>10.000 mensagens por mês</li><li><span class="feature-check">✓</span>500 imagens por mês</li><li><span class="feature-check">✓</span>Projetos ilimitados</li><li><span class="feature-check">✓</span>Agentes e automações avançadas</li><li><span class="feature-check">✓</span>Prioridade de processamento</li></ul>
+      <button class="plan-cta" data-plan="pro">Começar Pro</button>
+    </div>
+    <div class="plan-card" data-monthly="custom" data-yearly="custom">
+      <div class="plan-icon"><i data-lucide="building-2" width="18"></i></div><h3>Enterprise</h3><p class="plan-description">Para equipes que precisam de controle, segurança e escala.</p>
+      <div class="plan-price"><span class="price-value">Sob consulta</span></div><div class="plan-yearly">Plano desenhado para sua operação</div>
+      <ul class="plan-features"><li><span class="feature-check">✓</span>Workspace para equipes</li><li><span class="feature-check">✓</span>Controles administrativos</li><li><span class="feature-check">✓</span>SSO e políticas corporativas</li><li><span class="feature-check">✓</span>Deploy e infraestrutura dedicados</li><li><span class="feature-check">✓</span>Suporte comercial</li></ul>
+      <button class="plan-cta" data-plan="enterprise">Falar com Aethel</button>
+    </div>
+  </div>
+  <div class="billing-note">Os valores exibidos são uma configuração comercial da interface. O checkout só fica ativo depois que os links/produtos de pagamento forem configurados no servidor.</div>
+  <div class="legal-links"><button id="privacyBtn">Privacidade</button><button id="termsBtn">Termos</button><button id="statusBtn">Status do Aethel</button></div>
+</div></div>
+<script>document.getElementById("closeMotion")?.addEventListener("click",()=>document.getElementById("motionModal").classList.remove("open"));document.getElementById("runMotion")?.addEventListener("click",createMotion);</script>
+</body>
+</html>
+<!-- AETHEL V64 UI OVERRIDES: Apple-inspired, calm, dense, responsive -->
+<style id="aethel-v64-apple">
+:root{--apple-bg:#f5f5f7;--apple-card:rgba(255,255,255,.72);--apple-border:rgba(0,0,0,.08);--apple-text:#1d1d1f;--apple-muted:#6e6e73;--apple-blue:#0071e3}
+html.dark{--apple-bg:#000;--apple-card:rgba(28,28,30,.76);--apple-border:rgba(255,255,255,.12);--apple-text:#f5f5f7;--apple-muted:#a1a1a6}
+body{background:var(--apple-bg);color:var(--apple-text)}
+.app-shell{background:var(--apple-bg);min-height:100svh}
+.app-shell.active{position:fixed;inset:0;z-index:50;overflow:hidden}
+.app{grid-template-columns:272px minmax(0,1fr);background:var(--apple-bg)}
+.sidebar{background:rgba(245,245,247,.78);border-right:1px solid var(--apple-border);backdrop-filter:saturate(180%) blur(28px);-webkit-backdrop-filter:saturate(180%) blur(28px)}
+html.dark .sidebar{background:rgba(18,18,20,.82)}
+.side-inner{width:272px;padding:14px 12px}
+.brand{padding:8px 9px 20px;font-size:18px}.brand-mark{width:30px;height:30px;border-radius:9px;background:#fff;overflow:hidden}.brand-mark img{width:100%;height:100%;object-fit:contain}
+.new-chat{height:44px;border-radius:13px;background:var(--apple-card);border:1px solid var(--apple-border);box-shadow:0 1px 2px rgba(0,0,0,.04);font-size:14px;font-weight:600}
+.new-chat:hover,.workspace-btn:hover,.side-action:hover{background:rgba(120,120,128,.12)}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--apple-muted);padding:20px 9px 8px}
+.chat-row{height:38px;border-radius:10px;padding:0 8px;gap:8px;color:var(--apple-muted)}.chat-row.active{background:rgba(118,118,128,.14);color:var(--apple-text)}.chat-title{font-size:13px}
+.workspace-btn{border-radius:11px;color:var(--apple-text);background:transparent;border:1px solid transparent;font-size:12px}
+.plan-button{border-radius:14px;background:linear-gradient(135deg,#fff,#f1f1f3);color:#111;border:1px solid rgba(0,0,0,.07);box-shadow:0 8px 25px rgba(0,0,0,.07);margin-top:12px}
+html.dark .plan-button{background:linear-gradient(135deg,#2c2c2e,#1c1c1e);color:#fff;border-color:rgba(255,255,255,.1)}
+.main{background:var(--apple-bg);min-width:0}
+.topbar{height:58px;padding:8px 18px;background:rgba(245,245,247,.72);border-bottom:1px solid var(--apple-border);backdrop-filter:saturate(180%) blur(24px);-webkit-backdrop-filter:saturate(180%) blur(24px)}
+html.dark .topbar{background:rgba(0,0,0,.72)}
+.icon-btn,.account-btn{border-radius:10px}.icon-btn:hover,.account-btn:hover{background:rgba(118,118,128,.12)}
+.model-pill{border:1px solid var(--apple-border);background:var(--apple-card);border-radius:999px;box-shadow:0 1px 2px rgba(0,0,0,.04);font-size:12px}
+.status{font-size:11px;color:var(--apple-muted);padding:7px 10px;border-radius:999px;background:rgba(118,118,128,.08)}
+.status .dot{width:6px;height:6px;background:#34c759;box-shadow:0 0 0 3px rgba(52,199,89,.12)}
+.chat{background:var(--apple-bg)}.messages{width:min(900px,100%);padding-top:42px;padding-bottom:210px}
+.empty{text-align:center;padding:13vh 20px 0}.empty h1{font-size:clamp(30px,5vw,48px);letter-spacing:-.055em;font-weight:700;margin:0 0 12px}.empty p{color:var(--apple-muted);font-size:15px}
+.msg{gap:11px;margin:24px 0}.msg.user{justify-content:flex-end}.msg .bubble{border-radius:22px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.msg.user .bubble{background:#0071e3;color:white;border-bottom-right-radius:7px}.msg.ai .bubble{background:var(--apple-card);border:1px solid var(--apple-border);border-bottom-left-radius:7px}
+.bubble-content{font-size:15px;line-height:1.65}.avatar{width:30px;height:30px;border-radius:10px;background:#fff;border:1px solid var(--apple-border);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+.composer-wrap{background:linear-gradient(to top,var(--apple-bg) 68%,transparent);padding:24px 18px 20px}.composer{width:min(820px,100%);border:1px solid rgba(0,0,0,.12);background:rgba(255,255,255,.88);box-shadow:0 8px 32px rgba(0,0,0,.10);border-radius:22px;padding:10px;backdrop-filter:blur(24px)}
+html.dark .composer{background:rgba(30,30,32,.9);border-color:rgba(255,255,255,.14)}
+.composer textarea{font-size:15px;min-height:34px}.composer-tools{padding-top:7px}.send{width:34px;height:34px;border-radius:50%;background:#0071e3;box-shadow:0 3px 10px rgba(0,113,227,.25)}
+.drop{border-radius:12px;background:rgba(118,118,128,.08);color:var(--apple-muted)}
+.modal-backdrop{background:rgba(0,0,0,.38);backdrop-filter:blur(14px)}.modal{border-radius:24px;border:1px solid var(--apple-border);background:rgba(255,255,255,.92);box-shadow:0 30px 100px rgba(0,0,0,.2)}
+html.dark .modal{background:rgba(28,28,30,.94);color:#fff}
+.home{background:#000}.home-title{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Arial,sans-serif;font-weight:700;letter-spacing:-.075em}.home-title em{background:none;color:#fff}.home-badge{background:rgba(255,255,255,.07)}.home-primary{border-radius:999px}.home-cap{border-radius:20px;background:rgba(255,255,255,.045);border-color:rgba(255,255,255,.10)}
+@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{position:fixed;z-index:80;left:0;top:0;bottom:0;width:272px;transform:translateX(-105%);box-shadow:20px 0 60px rgba(0,0,0,.16)}.app.sidebar-open .sidebar{transform:translateX(0)}.topbar{padding:8px 10px}.messages{padding-left:14px;padding-right:14px}.composer-wrap{padding:12px 10px 10px}.status{display:none}.home-main{padding-bottom:45px}}
+</style>
+<script>
+/* V64 stability patch: app never opens a new tab and the LLM status is explicit. */
+(function(){
+  const open=window.open;
+  // Never allow accidental navigation to an empty/foreign tab from internal app controls.
+  document.addEventListener('click', function(e){
+    const a=e.target.closest && e.target.closest('a[target="_blank"]');
+    if(a && a.origin===location.origin){ e.preventDefault(); location.href=a.href; }
+  }, true);
+
+  window.__aethelV64Status = async function(){
+    try{
+      const r=await fetch((typeof API_BASE!=='undefined'?API_BASE:'')+'/api/llm/status',{cache:'no-store',credentials:'include'});
+      const d=await r.json();
+      const s=document.querySelector('.status');
+      if(s){
+        const ok=!!d.ready;
+        s.innerHTML='<span class="dot" style="background:'+(ok?'#34c759':'#ff9f0a')+'"></span> '+(ok?'Aethel • '+(d.model||'Local LLM'):'Aethel • preparando modelo');
+        s.title=ok?'Modelo local pronto':(d.error||'Ollama está iniciando ou baixando o modelo.');
+      }
+      return d;
+    }catch(e){
+      const s=document.querySelector('.status'); if(s) s.innerHTML='<span class="dot" style="background:#ff3b30"></span> Aethel • servidor offline';
+      return null;
+    }
+  };
+  setTimeout(()=>window.__aethelV64Status(),250);
+  setInterval(()=>window.__aethelV64Status(),4000);
+
+  // Replace the generic stream error with an actionable local-model message.
+  const oldGenerate=window.generateResponse;
+  if(typeof oldGenerate==='function'){
+    window.generateResponse=oldGenerate;
+  }
+})();
+</script>

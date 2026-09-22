@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: aethel-ai-v64
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    plan: starter
+    envVars:
+      - key: AETHEL_OLLAMA_MODEL
+        value: qwen2.5:3b-instruct-q4_K_M
+      - key: AETHEL_VISION_MODEL
+        value: qwen2.5vl:3b
+      - key: AETHEL_DB_PATH
+        value: /data/aethel.db
+      - key: AETHEL_WORKSPACE
+        value: /data/projects
+      - key: OLLAMA_MODELS
+        value: /data/ollama
+    disk:
+      name: aethel-data
+      mountPath: /data
+      sizeGB: 20
